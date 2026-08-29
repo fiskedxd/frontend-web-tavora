@@ -1,27 +1,44 @@
-# Script pour corriger le cache des avatars - Version simplifiée
-Write-Host "🔄 Modification des fichiers..." -ForegroundColor Cyan
+# fix-avatar.ps1 - Version finale et propre
+Write-Host "=== CORRECTION DES AVATARS ===" -ForegroundColor Cyan
 
-# 1. Modifier WorkspaceSidebar.jsx
-$content = Get-Content "src/components/WorkspaceSidebar.jsx" -Raw
+# Lire les fichiers
+$wsContent = Get-Content "src/components/WorkspaceSidebar.jsx" -Raw
+$appContent = Get-Content "src/pages/AppHomePage.jsx" -Raw
 
-# Remplacer la ligne const imageUrl
-$content = $content -replace '(const imageUrl = server\?\.avatarUrl;)', 'const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now()); const imageUrl = server?.avatarUrl ? `${server.avatarUrl}?t=${avatarTimestamp}` : "";'
+# === WORKSPACESIDEBAR ===
+Write-Host "Modification de WorkspaceSidebar.jsx..." -ForegroundColor Yellow
 
-# Remplacer le img
-$content = $content -replace '(person\?\.avatarUrl \? <img src={person\.avatarUrl} alt="" className="h-full w-full object-cover" /> : <User size={16} />)', '{person?.avatarUrl ? <img src={`${person.avatarUrl}?t=${avatarTimestamp}`} alt="" className="h-full w-full object-cover" /> : <User size={16} />}'
+# Supprimer la déclaration mal placée
+$wsContent = $wsContent -replace 'const \[avatarTimestamp, setAvatarTimestamp\] = useState\(Date\.now\(\)\); ', ''
 
-Set-Content "src/components/WorkspaceSidebar.jsx" -Value $content
-Write-Host "✅ WorkspaceSidebar.jsx modifié" -ForegroundColor Green
+# Ajouter la déclaration au bon endroit
+$wsContent = $wsContent -replace '(function WorkspaceSidebar\([^)]*\) {)', '$1
+  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());'
 
-# 2. Modifier AppHomePage.jsx
-$content = Get-Content "src/pages/AppHomePage.jsx" -Raw
-$content = $content -replace 'src={server\.avatarUrl}', 'src={`${server.avatarUrl}?t=${avatarTimestamp}`}'
-$content = $content -replace 'src={selectedServer\.avatarUrl}', 'src={`${selectedServer.avatarUrl}?t=${avatarTimestamp}`}'
-$content = $content -replace 'src={serverDraft\.avatarUrl}', 'src={`${serverDraft.avatarUrl}?t=${avatarTimestamp}`}'
+# Ajouter useState dans l'import si nécessaire
+if ($wsContent -notmatch 'import React, {[^}]*useState') {
+    $wsContent = $wsContent -replace '(import React, {)', '$1 useState, '
+}
 
-Set-Content "src/pages/AppHomePage.jsx" -Value $content
-Write-Host "✅ AppHomePage.jsx modifié" -ForegroundColor Green
+Set-Content "src/components/WorkspaceSidebar.jsx" -Value $wsContent
+Write-Host "OK WorkspaceSidebar.jsx" -ForegroundColor Green
 
-Write-Host "✅ Modifications terminées !" -ForegroundColor Green
-Write-Host "📌 Vérifie que useState est importé dans les deux fichiers" -ForegroundColor Yellow
-Write-Host "📌 Ajoute setAvatarTimestamp(Date.now()) dans les fonctions d'upload" -ForegroundColor Yellow
+# === APPHOMEPAGE ===
+Write-Host "Modification de AppHomePage.jsx..." -ForegroundColor Yellow
+
+# Ajouter la déclaration au bon endroit
+$appContent = $appContent -replace '(function AppHomePage\([^)]*\) {)', '$1
+  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());'
+
+# Ajouter useState dans l'import si nécessaire
+if ($appContent -notmatch 'import React, {[^}]*useState') {
+    $appContent = $appContent -replace '(import React, {)', '$1 useState, '
+}
+
+Set-Content "src/pages/AppHomePage.jsx" -Value $appContent
+Write-Host "OK AppHomePage.jsx" -ForegroundColor Green
+
+Write-Host ""
+Write-Host "=== TERMINE ===" -ForegroundColor Green
+Write-Host "Redemarre ton frontend : npm run dev" -ForegroundColor Yellow
+Write-Host "Puis hard refresh : Ctrl+Shift+R" -ForegroundColor Yellow

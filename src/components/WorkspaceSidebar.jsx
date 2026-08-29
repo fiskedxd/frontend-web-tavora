@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, ChevronDown, Copy, Hash, Home, Link2, MessageSquare, Plus, Search, Settings2, User, UserPlus, Users, Volume2 } from 'lucide-react';
 
 const ServerIcon = ({ server }) => {
@@ -48,6 +48,7 @@ export default function WorkspaceSidebar({
   onFriendRequestDecision,
   className = '',
 }) {
+  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now()); // 👈 AJOUTE CETTE LIGNE
   const [isServerMenuOpen, setIsServerMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [bannerFailed, setBannerFailed] = useState(false);
@@ -103,7 +104,7 @@ export default function WorkspaceSidebar({
             <div role="button" tabIndex={0} onClick={() => setIsServerMenuOpen((open) => !open)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setIsServerMenuOpen((open) => !open); }} className="flex h-16 cursor-pointer items-center justify-between px-4 text-left transition hover:bg-white/[0.035]" aria-expanded={isServerMenuOpen}>
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#16161d] text-sm font-semibold text-white/70">
-                <ServerIcon server={selectedServer} />
+                <ServerIcon server={selectedServer} timestamp={avatarTimestamp} />
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-white">{selectedServer.name}</p>
