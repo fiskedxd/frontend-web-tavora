@@ -14,7 +14,8 @@ export const uploadFile = async (file, { folder = 'uploads', getAuthHeaders } = 
 
 export const resolveTrackUrl = (track) => {
   if (!track) return '';
-  if (track.url) return track.url;
+  // ❌ ON IGNORE track.url car il est mal formé par le backend
+  // if (track.url) return track.url;
   if (track.filename?.startsWith('http')) return track.filename;
   if (track.filename) return `${API_URL}/api/files/music/${encodeURIComponent(track.filename)}`;
   return '';
