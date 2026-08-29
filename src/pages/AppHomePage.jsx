@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import WorkspaceSidebar from '../components/WorkspaceSidebar';
@@ -287,6 +287,7 @@ const ServerIcon = ({ server }) => {
 };
 
 export default function AppHomePage() {
+  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
