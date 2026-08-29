@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://backend-tavora.fly.dev';
+import { API_URL } from '../utils/api';
 
 export default function RegisterPage() {
   const navigate = useNavigate();

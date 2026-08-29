@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Copy, ListMusic, Play, Shuffle } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://backend-tavora.fly.dev';
+import { API_URL } from '../utils/api';
 const titleFor = (filename) => filename.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim();
 
 export default function PublicPlaylistPage() {

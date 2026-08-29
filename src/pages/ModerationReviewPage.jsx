@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://backend-tavora.fly.dev';
+import { API_URL } from '../utils/api';
 const reasonLabels = { harassment: 'Harcèlement', threats: 'Menaces', impersonation: 'Usurpation d’identité', spam: 'Spam', scam: 'Arnaque', dangerous: 'Contenu dangereux', hate: 'Discours haineux', abuse: 'Comportement abusif', other: 'Autre' };
 
 export default function ModerationReviewPage() {

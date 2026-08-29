@@ -5,7 +5,7 @@ import MusicPlayer from './MusicPlayer';
 import PlaylistEditor from './PlaylistEditor';
 import PlaylistDetailOverlay from './PlaylistDetailOverlay';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://backend-tavora.fly.dev';
+import { API_URL, resolveTrackUrl } from '../utils/api';
 
 const readableTitle = (file) => file.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim() || file;
 const formatTime = (value) => {
@@ -45,9 +45,9 @@ function SearchPanel({ getAuthHeaders, onClose, onOpenProfile }) {
 // eslint-disable-next-line no-unused-vars
 function LegacyAudioPanel({ isOpen, onClose, onActivityChange }) {
   const audioRef = useRef(null); const shouldPlayRef = useRef(false); const [tracks, setTracks] = useState([]); const [index, setIndex] = useState(0); const [playing, setPlaying] = useState(false); const [progress, setProgress] = useState(0); const [duration, setDuration] = useState(0); const [volume, setVolume] = useState(0.8); const [freeMode, setFreeMode] = useState(false); const [position, setPosition] = useState({ x: 0, y: 12 }); const [size, setSize] = useState({ width: 520, height: 58 }); const interactionRef = useRef(null);
-  useEffect(() => { fetch('/musiques/manifest.json').then((response) => response.json()).then((data) => setTracks((data.tracks || []).map((track) => typeof track === 'string' ? { file: track } : track))).catch(() => setTracks([])); }, []);
+  useEffect(() => { fetch(`${API_URL}/api/music/tracks`).then((response) => response.json()).then((data) => setTracks((data.tracks || []).map((track) => ({ ...track, file: track.filename })))).catch(() => setTracks([])); }, []);
   const track = tracks[index];
-  useEffect(() => { if (audioRef.current && track) { audioRef.current.src = `/musiques/${encodeURIComponent(track.file)}`; audioRef.current.load(); setProgress(0); setPlaying(false); if (shouldPlayRef.current) { audioRef.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false)); } } }, [track]);
+  useEffect(() => { if (audioRef.current && track) { audioRef.current.src = resolveTrackUrl(track); audioRef.current.load(); setProgress(0); setPlaying(false); if (shouldPlayRef.current) { audioRef.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false)); } } }, [track]);
   useEffect(() => { onActivityChange?.({ currentTitle: track ? track.title || readableTitle(track.file) : null, isPlaying: playing, progress, duration, recentTracks: tracks.slice(0, 5).map((item) => item.title || readableTitle(item.file)) }); }, [duration, onActivityChange, playing, progress, track, tracks]);
   const toggle = async () => { if (!audioRef.current || !track) return; if (playing) { shouldPlayRef.current = false; audioRef.current.pause(); setPlaying(false); } else { shouldPlayRef.current = true; await audioRef.current.play(); setPlaying(true); } };
   const move = (step, autoPlay = false) => { shouldPlayRef.current = autoPlay; setIndex((current) => (current + step + tracks.length) % tracks.length); };

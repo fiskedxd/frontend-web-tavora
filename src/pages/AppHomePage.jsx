@@ -24,7 +24,7 @@ import {
   Mic, MicOff, Video, VideoOff, Radio
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://backend-tavora.fly.dev';
+import { API_URL, uploadFile } from '../utils/api';
 
 const buildDefaultServerStructure = (server) => {
   const baseId = String(server.id || server.name || 'server').toLowerCase().replace(/\s+/g, '-');
@@ -1287,15 +1287,17 @@ export default function AppHomePage() {
     }
   };
 
-  const handleRoleIconFile = (event) => {
+  const handleRoleIconFile = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) { setServerSettingsMessage('L’icône doit être une image.'); return; }
     if (file.size > 2 * 1024 * 1024) { setServerSettingsMessage('L’icône ne doit pas dépasser 2 Mo.'); return; }
-    const reader = new FileReader();
-    reader.onload = () => setRoleDraft((current) => ({ ...current, iconUrl: String(reader.result) }));
-    reader.onerror = () => setServerSettingsMessage('Impossible de lire ce fichier.');
-    reader.readAsDataURL(file);
+    try {
+      const url = await uploadFile(file, { folder: 'role-icons', getAuthHeaders });
+      setRoleDraft((current) => ({ ...current, iconUrl: url }));
+    } catch (error) {
+      setServerSettingsMessage(error.message || 'Impossible de lire ce fichier.');
+    }
   };
 
   const deleteRole = async (role) => {
@@ -1671,24 +1673,28 @@ export default function AppHomePage() {
     }
   };
 
-  const handleProfileImageChange = (event, kind) => {
+  const handleProfileImageChange = async (event, kind) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setProfileDraft((prev) => ({ ...prev, [kind]: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const folder = kind === 'bannerUrl' ? 'banners' : 'avatars';
+      const url = await uploadFile(file, { folder, getAuthHeaders });
+      setProfileDraft((prev) => ({ ...prev, [kind]: url }));
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleServerImageChange = (event, kind) => {
+  const handleServerImageChange = async (event, kind) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setServerDraft((prev) => ({ ...prev, [kind]: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const folder = kind === 'bannerUrl' ? 'server-banners' : 'server-avatars';
+      const url = await uploadFile(file, { folder, getAuthHeaders });
+      setServerDraft((prev) => ({ ...prev, [kind]: url }));
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleSaveProfile = async (event, draftOverride = profileDraft) => {
