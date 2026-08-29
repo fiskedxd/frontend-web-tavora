@@ -49,7 +49,6 @@ function AppContent() {
 
   return (
     <>
-      {showNavBar && <NavBar />}
       <div key={`${location.pathname}${location.search}`} className="tavora-route-view">
       <Routes>
         <Route path="/" element={user ? <AppHomePage /> : <HomePage />} />
