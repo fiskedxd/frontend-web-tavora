@@ -3,7 +3,7 @@ import { Bell, ChevronDown, Copy, Hash, Home, Link2, MessageSquare, Plus, Search
 
 const ServerIcon = ({ server }) => {
   const [failed, setFailed] = React.useState(false);
-  const imageUrl = server?.avatarUrl;
+  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now()); const imageUrl = server?.avatarUrl ? `${server.avatarUrl}?t=${avatarTimestamp}` : "";
 
   return imageUrl && !failed ? (
     <img src={imageUrl} alt="" className="h-full w-full rounded-xl object-cover" onError={() => setFailed(true)} />
@@ -237,3 +237,4 @@ export default function WorkspaceSidebar({
     </aside>
   );
 }
+

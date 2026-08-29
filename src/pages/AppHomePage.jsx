@@ -217,7 +217,7 @@ const ServerInviteCard = ({ inviteUrl, getAuthHeaders, onJoin }) => {
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-indigo-500/15 text-lg font-semibold text-indigo-200">
             {server.avatarUrl && !avatarFailed ? (
-              <img src={server.avatarUrl} alt={`Icône de ${server.name}`} className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
+              <img src={`${server.avatarUrl}?t=${avatarTimestamp}`} alt={`Icône de ${server.name}`} className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
             ) : (
               server.name?.charAt(0)?.toUpperCase() || 'S'
             )}
@@ -274,7 +274,7 @@ const ServerIcon = ({ server }) => {
     <>
       {hasImage ? (
         <img
-          src={server.avatarUrl}
+          src={`${server.avatarUrl}?t=${avatarTimestamp}`}
           alt={`Icône de ${server.name}`}
           className="h-full w-full rounded-2xl object-cover"
           onError={() => setImageFailed(true)}
@@ -2107,7 +2107,7 @@ export default function AppHomePage() {
                     <div className="flex items-center gap-3">
                       <div className="h-14 w-14 overflow-hidden rounded-full border border-white/10 bg-[#10101a]">
                         {selectedServer.avatarUrl ? (
-                          <img src={selectedServer.avatarUrl} alt="Avatar du serveur" className="h-full w-full object-cover" />
+                          <img src={`${selectedServer.avatarUrl}?t=${avatarTimestamp}`} alt="Avatar du serveur" className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex h-full items-center justify-center bg-white/5 text-lg font-semibold text-white/50">
                             {selectedServer.name?.charAt(0)?.toUpperCase() || 'S'}
@@ -2655,9 +2655,9 @@ export default function AppHomePage() {
                                 <div className="mt-2 rounded-2xl border border-white/10 bg-[#0d0d14] p-3">
                                   <div className="mb-3 h-24 w-full overflow-hidden rounded-2xl bg-[#0b0b13]">
                                     {serverDraft.avatarUrl ? (
-                                      <img src={serverDraft.avatarUrl} alt="Aperçu avatar serveur" className="h-full w-full object-cover" />
+                                      <img src={`${serverDraft.avatarUrl}?t=${avatarTimestamp}`} alt="Aperçu avatar serveur" className="h-full w-full object-cover" />
                                     ) : selectedServer?.avatarUrl ? (
-                                      <img src={selectedServer.avatarUrl} alt="Avatar serveur" className="h-full w-full object-cover" />
+                                      <img src={`${selectedServer.avatarUrl}?t=${avatarTimestamp}`} alt="Avatar serveur" className="h-full w-full object-cover" />
                                     ) : (
                                       <div className="flex h-full items-center justify-center text-sm text-white/40">Aucun avatar</div>
                                     )}
