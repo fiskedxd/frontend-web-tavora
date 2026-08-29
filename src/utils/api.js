@@ -1,4 +1,4 @@
-export const API_URL = import.meta.env.VITE_API_URL || 'https://backend-web-tavora.fly.dev';
+export const API_URL = 'https://backend-web-tavora.fly.dev';
 
 export const uploadFile = async (file, { folder = 'uploads', getAuthHeaders } = {}) => {
   const data = new FormData();
