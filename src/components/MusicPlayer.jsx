@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, CirclePlus, ListMusic, Music2, Pause, Play, Repeat, Shuffle, Trash2, Upload, Volume2, VolumeX, X } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://backend-tavora.fly.dev';
+import { API_URL, resolveTrackUrl } from '../utils/api';
 const AUDIO_STORAGE_KEY = 'tavora-audio-session';
 const titleFor = (track) => track?.title || track?.filename?.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'Musique';
 const timeFor = (value) => Number.isFinite(value) ? `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}` : '--:--';
@@ -29,7 +29,7 @@ export default function MusicPlayer({ isOpen, onClose, onActivityChange, getAuth
     window.addEventListener('tavora:play-playlist', playPlaylist); window.addEventListener('tavora:play-track', playTrack);
     return () => { window.removeEventListener('tavora:play-playlist', playPlaylist); window.removeEventListener('tavora:play-track', playTrack); };
   }, [tracks]);
-  useEffect(() => { if (!track || !audioRef.current) return; audioRef.current.src = `/musiques/${encodeURIComponent(track.filename)}`; audioRef.current.load(); let restoredTime = 0; try { const restored = JSON.parse(localStorage.getItem(AUDIO_STORAGE_KEY) || 'null'); if (restored?.filename === track.filename) restoredTime = Number(restored.currentTime) || 0; } catch { restoredTime = 0; } setProgress(restoredTime); if (playing) audioRef.current.play().then(() => { audioRef.current.currentTime = restoredTime; }).catch(() => setPlaying(false)); }, [track]);
+  useEffect(() => { if (!track || !audioRef.current) return; console.log('🔍 track reçu :', track); console.log('🔍 track.filename :', track.filename); console.log('🔍 track.url :', track.url); const url = resolveTrackUrl(track); console.log('🔊 URL générée :', url); audioRef.current.src = url; audioRef.current.load(); let restoredTime = 0; try { const restored = JSON.parse(localStorage.getItem(AUDIO_STORAGE_KEY) || 'null'); if (restored?.filename === track.filename) restoredTime = Number(restored.currentTime) || 0; } catch { restoredTime = 0; } setProgress(restoredTime); if (playing) { audioRef.current.play().then(() => { audioRef.current.currentTime = restoredTime; }).catch(() => setPlaying(false)); } }, [track]);
   useEffect(() => { onActivityChange?.({ currentTitle: track ? titleFor(track) : null, isPlaying: playing, progress, duration, recentTracks: queue.slice(0, 5).map(titleFor) }); }, [duration, onActivityChange, playing, progress, queue, track]);
   const playIndex = (nextIndex, nextQueue = queue) => { setQueue(nextQueue); setIndex(nextIndex); setPlaying(true); };
   const next = () => { if (!queue.length) return; if (shuffle) return playIndex(Math.floor(Math.random() * queue.length)); playIndex((index + 1) % queue.length); };
