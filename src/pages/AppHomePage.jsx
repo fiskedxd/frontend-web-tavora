@@ -262,7 +262,7 @@ const MessageContent = ({ content, getAuthHeaders, onJoin }) => {
   );
 };
 
-const ServerIcon = ({ server }) => {
+const ServerIcon = ({ server, timestamp }) => {
   const [imageFailed, setImageFailed] = useState(false);
   const hasImage = Boolean(server?.avatarUrl) && !imageFailed;
 
@@ -274,7 +274,7 @@ const ServerIcon = ({ server }) => {
     <>
       {hasImage ? (
         <img
-          src={`${server.avatarUrl}?t=${avatarTimestamp}`}
+          src={`${server.avatarUrl}?t=${timestamp}`}
           alt={`Icône de ${server.name}`}
           className="h-full w-full rounded-2xl object-cover"
           onError={() => setImageFailed(true)}
@@ -1822,7 +1822,7 @@ export default function AppHomePage() {
                   aria-label={server.name}
                   title={server.name}
                 >
-                  <ServerIcon server={server} />
+                  <ServerIcon server={server} timestamp={avatarTimestamp} />
                   <span className="pointer-events-none absolute left-14 top-1/2 z-[60] -translate-y-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-[#171722] px-3 py-2 text-xs font-medium text-white opacity-0 shadow-xl transition-opacity duration-150 group-hover:opacity-100">
                     {server.name}
                   </span>
@@ -1860,7 +1860,7 @@ export default function AppHomePage() {
         <nav className="tavora-mobile-bottom-nav" aria-label="Navigation mobile">
           <button type="button" onClick={() => { setSelectedServer(null); setPrivateChatUser(null); navigate('/home'); }} className={!selectedServer && !params.userId ? 'is-active' : ''} aria-label="Accueil" title="Accueil"><Home size={18} /><span>Accueil</span></button>
           <div className="tavora-mobile-server-list">
-            {servers.map((server) => <button key={server.id} type="button" onClick={() => openServer(server)} className={selectedServer?.id === server.id ? 'is-active' : ''} aria-label={server.name} title={server.name}><span className="tavora-mobile-server-icon"><ServerIcon server={server} /></span></button>)}
+            {servers.map((server) => <button key={server.id} type="button" onClick={() => openServer(server)} className={selectedServer?.id === server.id ? 'is-active' : ''} aria-label={server.name} title={server.name}><span className="tavora-mobile-server-icon"><ServerIcon server={server} timestamp={avatarTimestamp} /></span></button>)}
             <button type="button" onClick={() => setIsServerModalOpen(true)} aria-label="Créer ou rejoindre un serveur" title="Créer ou rejoindre un serveur"><Plus size={18} /></button>
           </div>
           <button type="button" onClick={() => setIsMobileSidebarOpen((open) => !open)} className={isMobileSidebarOpen ? 'is-active' : ''} aria-label="Ouvrir les salons" title="Ouvrir les salons"><Menu size={18} /><span>Salons</span></button>
