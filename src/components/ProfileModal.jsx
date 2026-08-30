@@ -175,18 +175,21 @@ export default function ProfileModal({
             <Ban size={48} className="mx-auto text-white/30 mb-4" />
             <h2 className="text-xl font-bold text-white">Utilisateur bloqué</h2>
             <p className="mt-2 text-sm text-white/50">Vous avez bloqué cet utilisateur.</p>
+            
+            {/* Bouton Débloquer */}
             <button 
               type="button" 
               onClick={() => runAction(() => onUnblockUser?.(profileUserId), 'Utilisateur débloqué.')}
-              className="mt-4 rounded-md bg-white/10 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-white/20"
+              className="mt-4 rounded-lg bg-emerald-500/20 px-8 py-3 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/30 hover:scale-105 active:scale-95"
             >
-              <Unlock size={16} className="inline mr-2" />
+              <Unlock size={18} className="inline mr-2" />
               Débloquer
             </button>
+            
             <button 
               type="button" 
               onClick={onClose} 
-              className="mt-2 rounded-md px-6 py-2.5 text-sm text-white/40 transition hover:text-white/70"
+              className="mt-3 rounded-lg px-6 py-2.5 text-sm text-white/40 transition hover:text-white/70"
             >
               Fermer
             </button>
@@ -281,7 +284,7 @@ export default function ProfileModal({
           
           {/* Corps du profil */}
           <div className="flex-1 overflow-y-auto px-4 pb-4">
-            {/* Nom + bouton Plus (UNIQUEMENT si la personne est bloquée) */}
+            {/* Nom + bouton Plus (TOUJOURS présent) */}
             <div className="mt-2 flex items-start justify-between">
               <div>
                 <button 
@@ -298,13 +301,14 @@ export default function ProfileModal({
                 </div>
               </div>
               
-              {/* UN SEUL bouton Plus - UNIQUEMENT si on a bloqué la personne */}
-              {!isOwnProfile && !isOfficialProfile && isBlocked && (
+              {/* UN SEUL bouton Plus - TOUJOURS présent pour les autres */}
+              {!isOwnProfile && !isOfficialProfile && (
                 <div className="relative">
                   <button 
                     type="button" 
                     onClick={() => setIsActionMenuOpen((open) => !open)} 
                     className="rounded-full p-1.5 text-white/40 transition hover:bg-white/10 hover:text-white"
+                    aria-label="Plus d'actions"
                   >
                     <MoreHorizontal size={20} />
                   </button>
@@ -315,9 +319,10 @@ export default function ProfileModal({
                       style={{ 
                         top: '100%',
                         background: 'rgb(17, 18, 20)',
-                        width: '200px',
+                        width: '220px',
                       }}
                     >
+                      {/* ✅ DÉBLOQUER - TOUJOURS AFFICHÉ (utile si isBlocked mal détecté) */}
                       <button 
                         type="button" 
                         onClick={() => runAction(() => onUnblockUser?.(profileUserId), 'Utilisateur débloqué.')}
@@ -325,13 +330,56 @@ export default function ProfileModal({
                       >
                         <Unlock size={16} /> Débloquer
                       </button>
+                      
+                      <div className="my-1 border-t border-white/10" />
+                      
+                      {/* Ajouter en ami - seulement si pas ami */}
+                      {!isFriend && (
+                        <button 
+                          type="button" 
+                          onClick={() => runAction(() => onAddFriend?.(profileTarget), 'Demande envoyée.')} 
+                          className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-white hover:bg-[#248046]"
+                        >
+                          <UserPlus size={16} /> Ajouter en ami
+                        </button>
+                      )}
+                      
+                      {/* Supprimer des amis - seulement si ami */}
+                      {isFriend && (
+                        <button 
+                          type="button" 
+                          onClick={() => runAction(() => onRemoveFriend?.(profileUserId), 'Ami supprimé.')} 
+                          className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-white hover:bg-[#f23f43] hover:text-white"
+                        >
+                          <UserMinus size={16} /> Supprimer des amis
+                        </button>
+                      )}
+                      
+                      {/* Bloquer - seulement si pas déjà bloqué */}
+                      {!isBlocked && (
+                        <button 
+                          type="button" 
+                          onClick={() => runAction(() => onBlockUser?.(profileUserId), 'Utilisateur bloqué.')} 
+                          className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-[#f23f43] hover:bg-[#f23f43] hover:text-white"
+                        >
+                          <Ban size={16} /> Bloquer
+                        </button>
+                      )}
+                      
+                      <button 
+                        type="button" 
+                        onClick={() => { setIsActionMenuOpen(false); setIsReportOpen(true); }} 
+                        className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-white hover:bg-[#4e5058]"
+                      >
+                        <Flag size={16} /> Signaler
+                      </button>
                     </div>
                   )}
                 </div>
               )}
             </div>
             
-            {/* Boutons */}
+            {/* Boutons principaux */}
             <div className="mt-3 flex items-center gap-2">
               <button 
                 type="button" 
@@ -432,7 +480,7 @@ export default function ProfileModal({
           </div>
         </main>
         
-        {/* PARTIE DROITE - Plus fine (340px) */}
+        {/* PARTIE DROITE */}
         {!isOwnProfile && !isOfficialProfile && !isBlocked && (
           <div 
             className="flex flex-col border-l border-white/10"
@@ -443,11 +491,7 @@ export default function ProfileModal({
               <button 
                 type="button" 
                 onClick={() => setActiveTab('friends')} 
-                className={`text-sm font-medium transition ${
-                  activeTab === 'friends' 
-                    ? 'border-b-2 border-white text-white' 
-                    : 'text-white/40 hover:text-white/70'
-                }`}
+                className={`text-sm font-medium transition ${activeTab === 'friends' ? 'border-b-2 border-white text-white' : 'text-white/40 hover:text-white/70'}`}
                 style={{ paddingBottom: '10px' }}
               >
                 {commonData.friends.length > 0 ? `${commonData.friends.length} amis en commun` : 'Amis en commun'}
@@ -455,11 +499,7 @@ export default function ProfileModal({
               <button 
                 type="button" 
                 onClick={() => setActiveTab('servers')} 
-                className={`text-sm font-medium transition ${
-                  activeTab === 'servers' 
-                    ? 'border-b-2 border-white text-white' 
-                    : 'text-white/40 hover:text-white/70'
-                }`}
+                className={`text-sm font-medium transition ${activeTab === 'servers' ? 'border-b-2 border-white text-white' : 'text-white/40 hover:text-white/70'}`}
                 style={{ paddingBottom: '10px' }}
               >
                 {commonServers.length > 0 ? `${commonServers.length} serveurs en commun` : 'Serveurs en commun'}
@@ -474,18 +514,9 @@ export default function ProfileModal({
                     <p className="py-4 text-sm text-white/40">Chargement...</p>
                   ) : commonData.friends.length ? (
                     commonData.friends.map((friend) => (
-                      <div 
-                        key={friend.id || friend._id} 
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5 transition"
-                      >
+                      <div key={friend.id || friend._id} className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5 transition">
                         <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white/10">
-                          {friend.avatarUrl ? (
-                            <img src={friend.avatarUrl} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-sm text-white/40">
-                              {friend.displayName?.charAt(0) || '?'}
-                            </div>
-                          )}
+                          {friend.avatarUrl ? <img src={friend.avatarUrl} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-sm text-white/40">{friend.displayName?.charAt(0) || '?'}</div>}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm text-white truncate">{friend.displayName || friend.username}</p>
@@ -503,18 +534,9 @@ export default function ProfileModal({
                     <p className="py-4 text-sm text-white/40">Chargement...</p>
                   ) : commonServers.length ? (
                     commonServers.map((server) => (
-                      <div 
-                        key={server.id || server._id} 
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5 transition"
-                      >
+                      <div key={server.id || server._id} className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5 transition">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/10">
-                          {server.avatarUrl ? (
-                            <img src={server.avatarUrl} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <span className="text-sm font-medium text-white/40">
-                              {server.name?.charAt(0) || 'S'}
-                            </span>
-                          )}
+                          {server.avatarUrl ? <img src={server.avatarUrl} alt="" className="h-full w-full object-cover" /> : <span className="text-sm font-medium text-white/40">{server.name?.charAt(0) || 'S'}</span>}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm text-white truncate">{server.name}</p>
@@ -536,16 +558,10 @@ export default function ProfileModal({
       {isReportOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={() => setIsReportOpen(false)} />
-          <form 
-            onSubmit={submitReport} 
-            className="relative z-10 w-full max-w-md rounded-lg p-5 shadow-2xl"
-            style={{ background: 'rgb(49, 51, 56)' }}
-          >
+          <form onSubmit={submitReport} className="relative z-10 w-full max-w-md rounded-lg p-5 shadow-2xl" style={{ background: 'rgb(49, 51, 56)' }}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">Signaler</h2>
-              <button type="button" onClick={() => setIsReportOpen(false)} className="text-white/40 hover:text-white">
-                <X size={20} />
-              </button>
+              <button type="button" onClick={() => setIsReportOpen(false)} className="text-white/40 hover:text-white"><X size={20} /></button>
             </div>
             <p className="mt-2 text-sm text-white/60">Une raison est obligatoire.</p>
             <div className="mt-4 space-y-1">
