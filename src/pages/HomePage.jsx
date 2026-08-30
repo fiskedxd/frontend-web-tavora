@@ -650,21 +650,6 @@ const HomePage = () => {
                 ))}
               </div>
             </div>
-            {[
-              { title: 'Product', links: ['Download', 'Nitro', 'Status', 'App Directory'] },
-              { title: 'Company', links: ['About', 'Jobs', 'Brand', 'Newsroom'] },
-              { title: 'Resources', links: ['Support', 'Safety', 'Blog', 'Developers'] },
-              { title: 'Policies', links: ['Terms', 'Privacy', 'Guidelines', 'Licenses'] },
-            ].map((col, i) => (
-              <div key={i}>
-                <h4 className="text-indigo-400 text-xs font-semibold mb-4 tracking-wider uppercase">{col.title}</h4>
-                <div className="flex flex-col gap-3 text-sm text-white/30">
-                  {col.links.map((link, j) => (
-                    <a key={j} href="#" className="hover:text-white/60 transition-colors">{link}</a>
-                  ))}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </footer>
