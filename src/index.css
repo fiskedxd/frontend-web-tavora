@@ -160,6 +160,80 @@ a:hover {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.12));
 }
 
+/* ============================================
+   SCROLLBAR POUR MOBILE - PLUS LARGE ET VISIBLE
+   ============================================ */
+@media (max-width: 768px) {
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.2);
+  }
+
+  *::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.15));
+    border: 3px solid rgba(0, 0, 0, 0.2);
+    border-radius: 9999px;
+    min-height: 50px;
+  }
+}
+
+@media (max-width: 480px) {
+  *::-webkit-scrollbar {
+    width: 16px;
+    height: 16px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    min-height: 60px;
+    border-width: 4px;
+  }
+}
+
+/* ============================================
+   FORCER LE DÉFILEMENT SUR MOBILE
+   ============================================ */
+@media (max-width: 768px) {
+  html, body, #root {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    height: 100% !important;
+  }
+
+  .tavora-app-shell,
+  .tavora-workspace,
+  .tavora-chat,
+  .tavora-conversation,
+  .tavora-route-view,
+  main,
+  section {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .tavora-message-list,
+  .tavora-chat-column,
+  .tavora-channel-rail,
+  .tavora-navigation {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .overflow-hidden {
+    overflow-y: auto !important;
+  }
+}
+
 html, body, #root {
   margin: 0;
   padding: 0;
