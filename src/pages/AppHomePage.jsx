@@ -756,6 +756,24 @@ export default function AppHomePage() {
     }
   };
 
+  // Ajoute cette fonction après handleBlockFriend (vers la ligne 450)
+  const handleUnblockUser = async (targetUserId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/social/users/${targetUserId}/unblock`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Impossible de débloquer cet utilisateur.');
+      await refreshSocial();
+      setProfileMessage('Utilisateur débloqué.');
+      // Fermer le profil si ouvert
+      setIsProfileModalOpen(false);
+    } catch (error) {
+      setProfileMessage(error.message);
+    }
+  };
+
   const handleToggleMemberRole = async (memberId, role) => {
     if (!selectedServer?.id || !role?._id) return;
     const member = serverMembers.find((item) => String(item.id) === String(memberId));
@@ -3118,6 +3136,7 @@ export default function AppHomePage() {
         onAddFriend={handleAddFriendFromProfile}
         onRemoveFriend={handleRemoveFriend}
         onBlockUser={handleBlockFriend}
+        onUnblockUser={handleUnblockUser}
         onReport={reportUser}
         serverContext={selectedServer}
         serverRoles={serverRoles}
