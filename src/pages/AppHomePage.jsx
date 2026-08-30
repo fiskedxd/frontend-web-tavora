@@ -273,13 +273,15 @@ const ServerIcon = ({ server, timestamp }) => {
     <>
       {hasImage ? (
         <img
-          src={`${server.avatarUrl}?t=${timestamp}`}
+          src={`${server.avatarUrl}?t=${timestamp || Date.now()}`}
           alt={`Icône de ${server.name}`}
           className="h-full w-full rounded-2xl object-cover"
           onError={() => setImageFailed(true)}
         />
       ) : (
-        server?.name?.charAt(0)?.toUpperCase() || 'S'
+        <div className="flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-sm font-semibold text-white/60">
+          {server?.name?.charAt(0)?.toUpperCase() || 'S'}
+        </div>
       )}
     </>
   );

@@ -81,7 +81,12 @@ const isLikelyCode = (content) => {
 const CodeBlock = ({ inline, className, children, ...props }) => {
   const [copied, setCopied] = useState(false);
   const code = String(children).replace(/\n$/, '');
-  if (inline) return <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[0.9em] text-cyan-100" {...props}>{children}</code>;
+  
+  // Code inline
+  if (inline) {
+    return <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[0.9em] text-cyan-100" {...props}>{children}</code>;
+  }
+  
   const explicitLanguage = className?.match(/language-([\w-]+)/)?.[1];
   const language = languageAliases[explicitLanguage] || explicitLanguage || detectLanguage(code);
   const languageLabel = languageLabels[language] || (language ? language.toUpperCase() : 'Code');
@@ -96,26 +101,89 @@ const CodeBlock = ({ inline, className, children, ...props }) => {
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1200);
   };
-  return <div className="tavora-code-block"><div className="flex items-center justify-between border-b border-white/10 px-3 py-1.5 text-[10px] text-white/35"><span>{languageLabel}</span><button type="button" onClick={copy} className="inline-flex items-center gap-1 text-white/50 hover:text-white">{copied ? <Check size={12} /> : <Clipboard size={12} />}{copied ? 'Copié' : 'Copier'}</button></div><pre className={showLineNumbers ? 'tavora-code-with-lines' : ''}>{showLineNumbers ? lines.map((line, index) => <span className="tavora-code-line" key={`${index}-${line}`}><span className="tavora-line-number">{index + 1}</span><code dangerouslySetInnerHTML={{ __html: line || ' ' }} /></span>) : <code className={language ? `language-${language}` : ''} dangerouslySetInnerHTML={{ __html: highlightedCode }} {...props} />}</pre></div>;
+  
+  return (
+    <div className="tavora-code-block">
+      <div className="flex items-center justify-between border-b border-white/10 px-3 py-1.5 text-[10px] text-white/35">
+        <span>{languageLabel}</span>
+        <button type="button" onClick={copy} className="inline-flex items-center gap-1 text-white/50 hover:text-white">
+          {copied ? <Check size={12} /> : <Clipboard size={12} />}
+          {copied ? 'Copié' : 'Copier'}
+        </button>
+      </div>
+      <pre className={showLineNumbers ? 'tavora-code-with-lines' : ''}>
+        {showLineNumbers ? (
+          lines.map((line, index) => (
+            <span className="tavora-code-line" key={`${index}-${line}`}>
+              <span className="tavora-line-number">{index + 1}</span>
+              <code dangerouslySetInnerHTML={{ __html: line || ' ' }} />
+            </span>
+          ))
+        ) : (
+          <code className={language ? `language-${language}` : ''} dangerouslySetInnerHTML={{ __html: highlightedCode }} {...props} />
+        )}
+      </pre>
+    </div>
+  );
 };
 
-export const MessageMarkdown = ({ content }) => (
-  <div className="tavora-markdown mt-3 text-white/70">
-    {isLikelyCode(content) && !String(content).includes('```') ? <CodeBlock>{content}</CodeBlock> : <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]} components={{
-      code: CodeBlock,
-      a: ({ href, children, ...props }) => <a {...props} href={/^https?:|^mailto:/i.test(href || '') ? href : '#'} target="_blank" rel="noreferrer noopener" className="text-cyan-200 underline decoration-cyan-200/40 underline-offset-2 hover:text-cyan-100">{children}</a>,
-      input: ({ ...props }) => <input {...props} disabled className="mr-2 accent-cyan-300" />,
-      blockquote: ({ children }) => <blockquote className="border-l-2 border-cyan-300/40 pl-3 text-white/55">{children}</blockquote>,
-      h1: ({ children }) => <h1 className="text-3xl font-semibold text-white">{children}</h1>,
-      h2: ({ children }) => <h2 className="text-2xl font-semibold text-white">{children}</h2>,
-      h3: ({ children }) => <h3 className="text-xl font-semibold text-white">{children}</h3>,
-      ul: ({ children }) => <ul className="list-disc space-y-1 pl-6">{children}</ul>,
-      ol: ({ children }) => <ol className="list-decimal space-y-1 pl-6">{children}</ol>,
-      hr: () => <hr className="my-4 border-white/15" />,
-      span: ({ className, children }) => className === 'tavora-spoiler' ? <Spoiler>{children}</Spoiler> : <span className="tavora-small-text">{children}</span>,
-    }}>{preprocess(content)}</ReactMarkdown>}
-  </div>
-);
+export const MessageMarkdown = ({ content }) => {
+  const processedContent = preprocess(String(content || ''));
+  const isCode = isLikelyCode(content) && !String(content).includes('```');
+  
+  return (
+    <div className="tavora-markdown mt-3 text-white/70">
+      {isCode ? (
+        <CodeBlock>{content}</CodeBlock>
+      ) : (
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[
+            rehypeRaw,
+            [rehypeSanitize, sanitizeSchema]
+          ]}
+          components={{
+            // ✅ CORRECTION : Empêche les div dans les p
+            p: ({ node, children, ...props }) => {
+              // Si le paragraphe contient du code, on utilise div au lieu de p
+              const hasBlockElement = node?.children?.some(child => 
+                child.type === 'element' && 
+                (child.tagName === 'div' || child.tagName === 'pre' || child.tagName === 'code')
+              );
+              if (hasBlockElement) {
+                return <div className="markdown-paragraph" {...props}>{children}</div>;
+              }
+              return <p className="markdown-paragraph" {...props}>{children}</p>;
+            },
+            code: CodeBlock,
+            pre: ({ children }) => <>{children}</>, // ✅ CORRECTION : Retourne les enfants directement
+            a: ({ href, children, ...props }) => (
+              <a {...props} href={/^https?:|^mailto:/i.test(href || '') ? href : '#'} target="_blank" rel="noreferrer noopener" className="text-cyan-200 underline decoration-cyan-200/40 underline-offset-2 hover:text-cyan-100">
+                {children}
+              </a>
+            ),
+            input: ({ ...props }) => <input {...props} disabled className="mr-2 accent-cyan-300" />,
+            blockquote: ({ children }) => <blockquote className="border-l-2 border-cyan-300/40 pl-3 text-white/55">{children}</blockquote>,
+            h1: ({ children }) => <h1 className="text-3xl font-semibold text-white">{children}</h1>,
+            h2: ({ children }) => <h2 className="text-2xl font-semibold text-white">{children}</h2>,
+            h3: ({ children }) => <h3 className="text-xl font-semibold text-white">{children}</h3>,
+            ul: ({ children }) => <ul className="list-disc space-y-1 pl-6">{children}</ul>,
+            ol: ({ children }) => <ol className="list-decimal space-y-1 pl-6">{children}</ol>,
+            hr: () => <hr className="my-4 border-white/15" />,
+            span: ({ className, children }) => {
+              if (className === 'tavora-spoiler') {
+                return <Spoiler>{children}</Spoiler>;
+              }
+              return <span className="tavora-small-text">{children}</span>;
+            },
+          }}
+        >
+          {processedContent}
+        </ReactMarkdown>
+      )}
+    </div>
+  );
+};
 
 const Spoiler = ({ children }) => {
   const [revealed, setRevealed] = useState(false);

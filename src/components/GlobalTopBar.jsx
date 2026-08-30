@@ -64,8 +64,58 @@ function LegacyAudioPanel({ isOpen, onClose, onActivityChange }) {
 export default function GlobalTopBar({ getAuthHeaders, onOpenProfile, userId, user, onToggleMobileSidebar }) {
   const [panel, setPanel] = useState(null); const [audioActivity, setAudioActivity] = useState(null); const [playlistEditorOpen, setPlaylistEditorOpen] = useState(false); const [selectedPlaylist, setSelectedPlaylist] = useState(null); const [musicTracks, setMusicTracks] = useState([]); const [publicPlaylists, setPublicPlaylists] = useState([]); const rootRef = useRef(null); const audioSocketRef = useRef(null);
   useEffect(() => { const close = (event) => { if (!rootRef.current?.contains(event.target)) setPanel(null); }; document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close); }, []);
-  useEffect(() => { if (!userId) return undefined; const socket = io(API_URL, { transports: ['websocket'] }); audioSocketRef.current = socket; return () => { socket.emit('audio:activity', { userId, isPlaying: false }); socket.disconnect(); audioSocketRef.current = null; }; }, [userId]);
-  useEffect(() => { if (!userId || !audioSocketRef.current) return; audioSocketRef.current.emit('audio:activity', { userId, title: audioActivity?.currentTitle, isPlaying: Boolean(audioActivity?.isPlaying) }); }, [audioActivity, userId]);
+  useEffect(() => {
+    if (!userId) return undefined;
+
+    let socket = null;
+    let mounted = true;
+
+    const connectSocket = () => {
+      socket = io(API_URL, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 3,
+        reconnectionDelay: 1000,
+        timeout: 5000,
+        autoConnect: true
+      });
+
+      socket.on('connect', () => {
+        if (mounted) console.log('✅ Audio WebSocket connecté');
+      });
+
+      socket.on('connect_error', (error) => {
+        if (mounted) console.warn('⚠️ Audio WebSocket error:', error.message);
+      });
+
+      audioSocketRef.current = socket;
+    };
+
+    connectSocket();
+
+    return () => {
+      mounted = false;
+      if (socket) {
+        socket.removeAllListeners();
+        socket.emit('audio:activity', { userId, isPlaying: false });
+        socket.disconnect();
+        socket = null;
+        audioSocketRef.current = null;
+      }
+    };
+  }, [userId]);
+  useEffect(() => {
+    if (!userId || !audioSocketRef.current) return;
+    const socket = audioSocketRef.current;
+    // Vérifier si le socket est connecté avant d'émettre
+    if (socket.connected) {
+      socket.emit('audio:activity', { 
+        userId, 
+        title: audioActivity?.currentTitle, 
+        isPlaying: Boolean(audioActivity?.isPlaying) 
+      });
+    }
+  }, [audioActivity, userId]);
   useEffect(() => {
     const openPlaylistEditor = (event) => {
       const createButton = event.target.closest('[title="Créer une playlist"]');
