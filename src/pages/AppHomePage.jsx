@@ -132,7 +132,7 @@ const extractInviteUrl = (content) => {
   return match ? match[0].replace(/[),.!?]+$/, '') : null;
 };
 
-const ServerInviteCard = ({ inviteUrl, getAuthHeaders, onJoin }) => {
+const ServerInviteCard = ({ inviteUrl, getAuthHeaders, onJoin, avatarTimestamp }) => {
   const [server, setServer] = useState(null);
   const [status, setStatus] = useState('loading');
   const [isDismissed, setIsDismissed] = useState(false);
@@ -217,7 +217,7 @@ const ServerInviteCard = ({ inviteUrl, getAuthHeaders, onJoin }) => {
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-indigo-500/15 text-lg font-semibold text-indigo-200">
             {server.avatarUrl && !avatarFailed ? (
-              <img src={`${server.avatarUrl}?t=${avatarTimestamp}`} alt={`Icône de ${server.name}`} className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
+              <img src={`${server.avatarUrl}?t=${Date.now()}`} alt={`Icône de ${server.name}`} className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
             ) : (
               server.name?.charAt(0)?.toUpperCase() || 'S'
             )}
@@ -256,8 +256,7 @@ const MessageContent = ({ content, getAuthHeaders, onJoin }) => {
   return (
     <div className="mt-3">
       {before.trim() ? <MessageMarkdown content={before.trim()} /> : null}
-      <ServerInviteCard inviteUrl={inviteUrl} getAuthHeaders={getAuthHeaders} onJoin={onJoin} />
-      {after.trim() ? <MessageMarkdown content={after.trim()} /> : null}
+      <ServerInviteCard inviteUrl={inviteUrl} getAuthHeaders={getAuthHeaders} onJoin={onJoin} avatarTimestamp={avatarTimestamp} />      {after.trim() ? <MessageMarkdown content={after.trim()} /> : null}
     </div>
   );
 };
