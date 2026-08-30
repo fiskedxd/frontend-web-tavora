@@ -248,7 +248,7 @@ const ServerInviteCard = ({ inviteUrl, getAuthHeaders, onJoin, avatarTimestamp }
   );
 };
 
-const MessageContent = ({ content, getAuthHeaders, onJoin }) => {
+const MessageContent = ({ content, getAuthHeaders, onJoin, avatarTimestamp }) => {
   const inviteUrl = extractInviteUrl(content);
   if (!inviteUrl) return <MessageMarkdown content={content} />;
 
@@ -2219,7 +2219,7 @@ export default function AppHomePage() {
                                           </div>
                                           <span className="text-[11px] text-white/30">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                         </div>
-                                        {editingMessageId === msg._id ? <div className="mt-2 flex gap-2"><input autoFocus value={editingMessageDraft} onChange={(event) => setEditingMessageDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') editMessage(); if (event.key === 'Escape') setEditingMessageId(null); }} className="min-w-0 flex-1 rounded-lg bg-black/30 px-2 py-1 text-sm text-white outline-none" /><button type="button" onClick={editMessage} className="text-xs text-cyan-200">Enregistrer</button></div> : <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} />}
+                                        {editingMessageId === msg._id ? <div className="mt-2 flex gap-2"><input autoFocus value={editingMessageDraft} onChange={(event) => setEditingMessageDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') editMessage(); if (event.key === 'Escape') setEditingMessageId(null); }} className="min-w-0 flex-1 rounded-lg bg-black/30 px-2 py-1 text-sm text-white outline-none" /><button type="button" onClick={editMessage} className="text-xs text-cyan-200">Enregistrer</button></div> : <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} avatarTimestamp={avatarTimestamp} />}
                                       </div>
                                     </div>
                                   </div>
