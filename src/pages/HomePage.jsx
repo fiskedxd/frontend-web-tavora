@@ -183,10 +183,50 @@ const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050508] text-white overflow-hidden">
+    <div className="min-h-screen bg-[#050508] text-white overflow-y-auto overflow-x-hidden">
+          {/* AJOUTE CE STYLE ICI - JUSTE APRÈS LE DIV OUVERT */}
+    {!user && (
+      <style>{`
+        /* Forcer la scrollbar visible sur PC pour la page d'accueil */
+        body {
+          overflow-y: auto !important;
+        }
+        
+        html, body, #root {
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+        }
+        
+        * {
+          scrollbar-width: auto !important;
+          scrollbar-color: rgba(255, 255, 255, 0.25) rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        *::-webkit-scrollbar {
+          width: 12px !important;
+          height: 12px !important;
+        }
+        
+        *::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.3) !important;
+          border-radius: 9999px !important;
+        }
+        
+        *::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.12)) !important;
+          border: 2px solid rgba(0, 0, 0, 0.2) !important;
+          border-radius: 9999px !important;
+          min-height: 40px !important;
+        }
+        
+        *::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.2)) !important;
+        }
+      `}</style>
+    )}
               <header className={`fixed inset-x-0 top-0 z-50 px-3 pt-3 transition-all duration-500 sm:px-6 sm:pt-4 lg:px-8 ${showNavbar ? 'translate-y-0 opacity-100' : '-translate-y-14 opacity-0'}`}>
                 <div className={`mx-auto flex max-w-7xl items-center justify-between rounded-[28px] border border-white/[0.06] px-5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-2xl transition-all duration-500 ${scrolled ? 'bg-[#030303]/95' : 'bg-[#030303]/80'} ${navHide ? 'animate-[nav-bounce_0.35s_ease-out]' : ''}`}>
-                  <div className="absolute inset-0 overflow-hidden rounded-[28px] pointer-events-none">
+                  <div className="absolute inset-0 overflow-y-auto rounded-[28px] pointer-events-none">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.04),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.02),transparent_40%)]" />
                   </div>
                   <div className="relative flex items-center gap-3">
