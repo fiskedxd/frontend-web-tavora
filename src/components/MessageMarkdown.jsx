@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -12,7 +12,7 @@ const sanitizeSchema = {
   attributes: {
     ...defaultSchema.attributes,
     code: [...(defaultSchema.attributes.code || []), ['className', /^language-[\w-]+$/]],
-    span: [...(defaultSchema.attributes.span || []), ['className', /^(tavora-spoiler|tavora-small-text)$/]],
+    span: [...(defaultSchema.attributes.span || []), ['className', /^(tavora-spoiler|tavora-small-text|mention|mention-everyone)$/]],
   },
   protocols: {
     ...defaultSchema.protocols,
@@ -47,7 +47,9 @@ const languageOptions = Object.entries(languageLabels);
 const preprocess = (value) => String(value || '')
   .replace(/(^|\n)-# (.+)/g, '$1<span class="tavora-small-text">$2</span>')
   .replace(/__([^_\n]+)__/g, '<u>$1</u>')
-  .replace(/\|\|([^\n|]+)\|\|/g, '<span class="tavora-spoiler">$1</span>');
+  .replace(/\|\|([^\n|]+)\|\|/g, '<span class="tavora-spoiler">$1</span>')
+  .replace(/<@([^>]+)>/g, '<span class="mention">@$1</span>')
+  .replace(/@everyone/g, '<span class="mention-everyone">@everyone</span>');
 
 const detectLanguage = (code) => {
   const source = String(code || '');
@@ -82,7 +84,6 @@ const CodeBlock = ({ inline, className, children, ...props }) => {
   const [copied, setCopied] = useState(false);
   const code = String(children).replace(/\n$/, '');
   
-  // Code inline
   if (inline) {
     return <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[0.9em] text-cyan-100" {...props}>{children}</code>;
   }
@@ -143,9 +144,7 @@ export const MessageMarkdown = ({ content }) => {
             [rehypeSanitize, sanitizeSchema]
           ]}
           components={{
-            // ✅ CORRECTION : Empêche les div dans les p
             p: ({ node, children, ...props }) => {
-              // Si le paragraphe contient du code, on utilise div au lieu de p
               const hasBlockElement = node?.children?.some(child => 
                 child.type === 'element' && 
                 (child.tagName === 'div' || child.tagName === 'pre' || child.tagName === 'code')
@@ -156,7 +155,7 @@ export const MessageMarkdown = ({ content }) => {
               return <p className="markdown-paragraph" {...props}>{children}</p>;
             },
             code: CodeBlock,
-            pre: ({ children }) => <>{children}</>, // ✅ CORRECTION : Retourne les enfants directement
+            pre: ({ children }) => <>{children}</>,
             a: ({ href, children, ...props }) => (
               <a {...props} href={/^https?:|^mailto:/i.test(href || '') ? href : '#'} target="_blank" rel="noreferrer noopener" className="text-cyan-200 underline decoration-cyan-200/40 underline-offset-2 hover:text-cyan-100">
                 {children}
@@ -173,6 +172,12 @@ export const MessageMarkdown = ({ content }) => {
             span: ({ className, children }) => {
               if (className === 'tavora-spoiler') {
                 return <Spoiler>{children}</Spoiler>;
+              }
+              if (className === 'mention') {
+                return <span className="inline-block rounded bg-yellow-500/20 px-1 py-0.5 text-yellow-200 font-medium">{children}</span>;
+              }
+              if (className === 'mention-everyone') {
+                return <span className="inline-block rounded bg-rose-500/20 px-1 py-0.5 text-rose-200 font-medium">{children}</span>;
               }
               return <span className="tavora-small-text">{children}</span>;
             },
@@ -211,27 +216,251 @@ const applyFormat = (value, start, end, action) => {
   return { value, start, end };
 };
 
-export const MessageComposer = ({ value, onChange, onSubmit, placeholder, isSending, className = '', onKeyDown, children }) => {
+export const MessageComposer = ({ 
+  value, 
+  onChange, 
+  onSubmit, 
+  placeholder, 
+  isSending, 
+  className = '', 
+  onKeyDown, 
+  children,
+  serverMembers = [],
+  currentUserId = null 
+}) => {
   const textareaRef = useRef(null);
   const [preview, setPreview] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState('');
+  const [mentionResults, setMentionResults] = useState([]);
+  const [showMentions, setShowMentions] = useState(false);
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const fencedCode = value.match(/```([^\n]*)\n?([\s\S]*?)(?:```|$)/);
   const detectedCodeLanguage = fencedCode ? (languageAliases[fencedCode[1].trim().toLowerCase()] || fencedCode[1].trim().toLowerCase() || detectLanguage(fencedCode[2])) : '';
-  const update = (nextValue, start, end) => { onChange(nextValue); requestAnimationFrame(() => { textareaRef.current?.focus(); textareaRef.current?.setSelectionRange(start, end); }); };
-  const format = (action) => { const textarea = textareaRef.current; const result = applyFormat(value, textarea?.selectionStart || 0, textarea?.selectionEnd || 0, action); update(result.value, result.start, result.end); setMenuOpen(false); };
+
+// Ligne ~254 - Remplace ce useEffect
+  useEffect(() => {
+    if (mentionSearch.length > 0 && serverMembers.length > 0) {
+      const filtered = serverMembers
+        .filter(member => 
+          String(member.id) !== String(currentUserId) &&
+          (member.displayName?.toLowerCase().includes(mentionSearch.toLowerCase()) ||
+           member.username?.toLowerCase().includes(mentionSearch.toLowerCase()))
+        )
+        .slice(0, 5);
+      setMentionResults(filtered);
+      setSelectedMentionIndex(0);
+    } else {
+      setMentionResults([]);
+    }
+  }, [mentionSearch, currentUserId]); // ✅ SUPPRIME serverMembers des dépendances
+
+  const handleMentionSelect = (member) => {
+    const textarea = textareaRef.current;
+    const cursorPos = textarea.selectionStart;
+    const before = value.slice(0, cursorPos);
+    const after = value.slice(cursorPos);
+    const atIndex = before.lastIndexOf('@');
+    if (atIndex === -1) return;
+    const newValue = before.slice(0, atIndex) + `@${member.displayName || member.username} ` + after;
+    onChange(newValue);
+    setShowMentions(false);
+    setMentionSearch('');
+    textarea.focus();
+  };
+
+  const update = (nextValue, start, end) => { 
+    onChange(nextValue); 
+    requestAnimationFrame(() => { 
+      textareaRef.current?.focus(); 
+      textareaRef.current?.setSelectionRange(start, end); 
+    }); 
+  };
+
+  const format = (action) => { 
+    const textarea = textareaRef.current; 
+    const result = applyFormat(value, textarea?.selectionStart || 0, textarea?.selectionEnd || 0, action); 
+    update(result.value, result.start, result.end); 
+    setMenuOpen(false); 
+  };
+
   const changeCodeLanguage = (event) => {
     if (!fencedCode) return;
     const language = event.target.value;
-      const replacement = `${'```'}${language}\n`;
+    const replacement = `${'```'}${language}\n`;
     onChange(`${value.slice(0, fencedCode.index)}${replacement}${value.slice(fencedCode.index + fencedCode[0].indexOf('\n') + 1)}`);
   };
-  const submit = (event) => { event.preventDefault(); if (value.trim() === '/formatage') { setHelpOpen(true); onChange(''); return; } onSubmit(event); };
-  return <form onSubmit={submit} className={`tavora-composer relative rounded-xl border p-3 ${className}`}>
-    {children}
-    {helpOpen ? <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-30 max-h-[min(70vh,32rem)] overflow-y-auto rounded-xl border border-white/10 bg-[#111118] p-3 shadow-2xl"><div className="mb-3 flex items-center justify-between"><h4 className="font-semibold text-white">Formatage Markdown</h4><button type="button" onClick={() => setHelpOpen(false)} className="text-white/50 hover:text-white"><X size={16} /></button></div><div className="grid gap-2 sm:grid-cols-2">{formatOptions.map((option) => <button type="button" key={option.action} onClick={() => { setHelpOpen(false); format(option.action); }} className="rounded-lg border border-white/10 p-2 text-left hover:bg-white/5"><span className="block text-xs font-medium text-white">{option.label}</span><code className="block text-[11px] text-cyan-200/80">{option.syntax}</code><span className="text-[11px] text-white/40">{option.example}</span></button>)}</div></div> : null}
-    {menuOpen ? <div className="absolute bottom-[calc(100%+8px)] left-0 z-20 grid w-72 grid-cols-2 gap-1 rounded-xl border border-white/10 bg-[#111118] p-2 shadow-2xl">{formatOptions.map((option) => <button type="button" key={option.action} onClick={() => format(option.action)} className="rounded-lg px-2 py-1.5 text-left text-xs text-white/70 hover:bg-white/10 hover:text-white"><span className="block">{option.label}</span><code className="text-[10px] text-cyan-200/60">{option.syntax}</code></button>)}</div> : null}
-    {preview ? <div className="min-h-[4.5rem] rounded-xl border border-white/5 bg-[#1a1a24] px-3 py-2"><MessageMarkdown content={value || '*Aperçu vide*'} /></div> : <textarea ref={textareaRef} value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={onKeyDown || ((event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); if (!isSending && value.trim()) event.currentTarget.form?.requestSubmit(); } })} placeholder={placeholder} rows={3} className="w-full resize-none rounded-xl border border-white/5 bg-[#1a1a24] px-3 py-2 text-sm text-white outline-none" />}
-    <div className="mt-2 flex flex-wrap items-center gap-1"><button type="button" title="Formatage" onClick={() => setMenuOpen((open) => !open)} className="rounded-lg p-2 text-white/50 hover:bg-white/10 hover:text-white"><Type size={16} /></button><button type="button" title={preview ? 'Écriture' : 'Aperçu'} onClick={() => setPreview((open) => !open)} className="rounded-lg p-2 text-white/50 hover:bg-white/10 hover:text-white">{preview ? <EyeOff size={16} /> : <Eye size={16} />}</button><button type="button" title="Aide formatage (/formatage)" onClick={() => setHelpOpen(true)} className="rounded-lg p-2 text-white/50 hover:bg-white/10 hover:text-white"><Quote size={16} /></button>{fencedCode ? <label className="ml-2 inline-flex items-center gap-2 text-[11px] text-white/40">Langage<select value={detectedCodeLanguage || ''} onChange={changeCodeLanguage} className="rounded border border-white/10 bg-[#111118] px-1.5 py-1 text-[11px] text-cyan-200"><option value="">Auto</option>{languageOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label> : null}<span className="ml-auto text-[11px] text-white/25">{fencedCode && detectedCodeLanguage ? `Détecté : ${languageLabels[detectedCodeLanguage] || detectedCodeLanguage}` : 'Markdown actif'}</span></div>
-  </form>;
+
+  const submit = (event) => { 
+    event.preventDefault(); 
+    if (value.trim() === '/formatage') { 
+      setHelpOpen(true); 
+      onChange(''); 
+      return; 
+    } 
+    onSubmit(event); 
+  };
+
+  const handleChange = (e) => {
+    const newValue = e.target.value;
+    onChange(newValue);
+    const cursorPos = e.target.selectionStart;
+    const before = newValue.slice(0, cursorPos);
+    const lastAtIndex = before.lastIndexOf('@');
+    if (lastAtIndex !== -1) {
+      const searchTerm = before.slice(lastAtIndex + 1);
+      if (!searchTerm.includes(' ')) {
+        setMentionSearch(searchTerm);
+        setShowMentions(true);
+      } else {
+        setShowMentions(false);
+        setMentionSearch('');
+      }
+    } else {
+      setShowMentions(false);
+      setMentionSearch('');
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (showMentions && mentionResults.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedMentionIndex((prev) => (prev + 1) % mentionResults.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedMentionIndex((prev) => (prev - 1 + mentionResults.length) % mentionResults.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        handleMentionSelect(mentionResults[selectedMentionIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setShowMentions(false);
+        setMentionSearch('');
+        return;
+      }
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!isSending && value.trim()) {
+        e.currentTarget.form?.requestSubmit();
+      }
+      return;
+    }
+    onKeyDown?.(e);
+  };
+
+  return (
+    <form onSubmit={submit} className={`tavora-composer relative rounded-xl border p-3 ${className}`}>
+      {children}
+      
+      {helpOpen ? (
+        <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-30 max-h-[min(70vh,32rem)] overflow-y-auto rounded-xl border border-white/10 bg-[#111118] p-3 shadow-2xl">
+          <div className="mb-3 flex items-center justify-between">
+            <h4 className="font-semibold text-white">Formatage Markdown</h4>
+            <button type="button" onClick={() => setHelpOpen(false)} className="text-white/50 hover:text-white">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {formatOptions.map((option) => (
+              <button type="button" key={option.action} onClick={() => { setHelpOpen(false); format(option.action); }} className="rounded-lg border border-white/10 p-2 text-left hover:bg-white/5">
+                <span className="block text-xs font-medium text-white">{option.label}</span>
+                <code className="block text-[11px] text-cyan-200/80">{option.syntax}</code>
+                <span className="text-[11px] text-white/40">{option.example}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      
+      {menuOpen ? (
+        <div className="absolute bottom-[calc(100%+8px)] left-0 z-20 grid w-72 grid-cols-2 gap-1 rounded-xl border border-white/10 bg-[#111118] p-2 shadow-2xl">
+          {formatOptions.map((option) => (
+            <button type="button" key={option.action} onClick={() => format(option.action)} className="rounded-lg px-2 py-1.5 text-left text-xs text-white/70 hover:bg-white/10 hover:text-white">
+              <span className="block">{option.label}</span>
+              <code className="text-[10px] text-cyan-200/60">{option.syntax}</code>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      
+      {showMentions && mentionResults.length > 0 && (
+        <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-30 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-[#111118] p-1 shadow-2xl">
+          {mentionResults.map((member, index) => (
+            <button
+              key={member.id}
+              type="button"
+              onClick={() => handleMentionSelect(member)}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition ${
+                index === selectedMentionIndex ? 'bg-cyan-200/10' : 'hover:bg-white/5'
+              }`}
+            >
+              <div className="h-8 w-8 rounded-full overflow-hidden bg-white/10">
+                {member.avatarUrl ? (
+                  <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm text-white/40">
+                    {member.displayName?.charAt(0) || member.username?.charAt(0) || '?'}
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-white">{member.displayName || member.username}</p>
+                <p className="text-xs text-white/40">@{member.username}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+      
+      {preview ? (
+        <div className="min-h-[4.5rem] rounded-xl border border-white/5 bg-[#1a1a24] px-3 py-2">
+          <MessageMarkdown content={value || '*Aperçu vide*'} />
+        </div>
+      ) : (
+        <textarea 
+          ref={textareaRef} 
+          value={value} 
+          onChange={handleChange} 
+          onKeyDown={handleKeyDown} 
+          placeholder={placeholder} 
+          rows={3} 
+          className="w-full resize-none rounded-xl border border-white/5 bg-[#1a1a24] px-3 py-2 text-sm text-white outline-none" 
+        />
+      )}
+      
+      <div className="mt-2 flex flex-wrap items-center gap-1">
+        <button type="button" title="Formatage" onClick={() => setMenuOpen((open) => !open)} className="rounded-lg p-2 text-white/50 hover:bg-white/10 hover:text-white">
+          <Type size={16} />
+        </button>
+        <button type="button" title={preview ? 'Écriture' : 'Aperçu'} onClick={() => setPreview((open) => !open)} className="rounded-lg p-2 text-white/50 hover:bg-white/10 hover:text-white">
+          {preview ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+        <button type="button" title="Aide formatage (/formatage)" onClick={() => setHelpOpen(true)} className="rounded-lg p-2 text-white/50 hover:bg-white/10 hover:text-white">
+          <Quote size={16} />
+        </button>
+        {fencedCode ? (
+          <label className="ml-2 inline-flex items-center gap-2 text-[11px] text-white/40">
+            Langage
+            <select value={detectedCodeLanguage || ''} onChange={changeCodeLanguage} className="rounded border border-white/10 bg-[#111118] px-1.5 py-1 text-[11px] text-cyan-200">
+              <option value="">Auto</option>
+              {languageOptions.map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <span className="ml-auto text-[11px] text-white/25">
+          {fencedCode && detectedCodeLanguage ? `Détecté : ${languageLabels[detectedCodeLanguage] || detectedCodeLanguage}` : 'Markdown actif'}
+        </span>
+      </div>
+    </form>
+  );
 };

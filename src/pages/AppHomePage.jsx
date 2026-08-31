@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import WorkspaceSidebar from '../components/WorkspaceSidebar';
-import GlobalTopBar from '../components/GlobalTopBar';
 import ProfileModal from '../components/ProfileModal';
 import AccountSettingsModal from '../components/AccountSettingsModal';
 import RoleSettingsPanel from '../components/RoleSettingsPanel';
@@ -25,6 +24,195 @@ import {
 } from 'lucide-react';
 
 import { API_URL, uploadFile } from '../utils/api';
+
+import GlobalTopBar from '../components/GlobalTopBar';
+
+const REFRESH_INTERVAL = 1500;
+const WorkspaceSidebarMemo = React.memo(WorkspaceSidebar);
+
+// Ajoute ceci après les imports et avant const buildDefaultServerStructure
+// Plaques nominatives - URLs Discord officielles avec noms personnalisés
+const NAMEPLATES = [
+  { 
+    id: 'none', 
+    name: 'Aucune', 
+    url: null,
+    color: '#ffffff',
+    glow: 'none'
+  },
+  { 
+    id: 'galactic_blue', 
+    name: 'Bleu Galactique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1495806574269038713/static',
+    color: '#5865F2',
+    glow: '0 0 20px #5865F2'
+  },
+  { 
+    id: 'emerald_glow', 
+    name: 'Émeraude Lumineuse', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1495807265175900180/static',
+    color: '#57F287',
+    glow: '0 0 20px #57F287'
+  },
+  { 
+    id: 'crimson_fire', 
+    name: 'Feu Cramoisi', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1538991887497695252/static',
+    color: '#ED4245',
+    glow: '0 0 20px #ED4245'
+  },
+  { 
+    id: 'golden_radiance', 
+    name: 'Rayonnement Doré', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1531411317477478654/static',
+    color: '#FEE75C',
+    glow: '0 0 20px #FEE75C'
+  },
+  { 
+    id: 'neon_pulse', 
+    name: 'Pulsation Néon', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1488244924066566185/static',
+    color: '#EB459E',
+    glow: '0 0 20px #EB459E'
+  },
+  { 
+    id: 'ocean_depth', 
+    name: 'Profondeur Océanique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1488245817364975626/static',
+    color: '#00B0F4',
+    glow: '0 0 20px #00B0F4'
+  },
+  { 
+    id: 'shadow_strike', 
+    name: 'Frappe de l\'Ombre', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1519015716097888296/static',
+    color: '#1E1F22',
+    glow: '0 0 20px #1E1F22'
+  },
+  { 
+    id: 'sunburst', 
+    name: 'Explosion Solaire', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1377377712028516443/static',
+    color: '#F0B232',
+    glow: '0 0 20px #F0B232'
+  },
+  { 
+    id: 'rose_tinted', 
+    name: 'Rose Tinté', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1519015238345822428/static',
+    color: '#FF6B6B',
+    glow: '0 0 20px #FF6B6B'
+  },
+  { 
+    id: 'mystic_amethyst', 
+    name: 'Améthyste Mystique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1519009618574053668/static',
+    color: '#A855F7',
+    glow: '0 0 20px #A855F7'
+  },
+  { 
+    id: 'celestial_blue', 
+    name: 'Bleu Céleste', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1498424942121848852/static',
+    color: '#3B82F6',
+    glow: '0 0 20px #3B82F6'
+  },
+  { 
+    id: 'arctic_ice', 
+    name: 'Glace Arctique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1447654090921349235/static',
+    color: '#60A5FA',
+    glow: '0 0 20px #60A5FA'
+  },
+  { 
+    id: 'midnight_storm', 
+    name: 'Tempête de Minuit', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1447654091173007401/static',
+    color: '#4C1D95',
+    glow: '0 0 20px #4C1D95'
+  },
+];
+
+// Composant Avatar avec décoration
+const AvatarWithDecoration = ({ user, size = 40, className = '' }) => {
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const decoration = user?.avatarDecoration || null;
+  const avatarUrl = user?.avatarUrl || '';
+  
+  return (
+    <div className={`relative ${className}`} style={{ width: size, height: size }}>
+      <div 
+        className="overflow-hidden rounded-full"
+        style={{ 
+          width: size, 
+          height: size,
+          border: '2px solid #1a1a24',
+          backgroundColor: '#111111',
+        }}
+      >
+        {avatarUrl && !avatarFailed ? (
+          <img 
+            src={avatarUrl} 
+            alt={`Avatar de ${user?.displayName || user?.username || 'Utilisateur'}`} 
+            className="h-full w-full object-cover" 
+            onError={() => setAvatarFailed(true)} 
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <User size={size * 0.4} className="text-gray-600" />
+          </div>
+        )}
+      </div>
+      
+      {decoration && (
+        <img 
+          src={decoration} 
+          alt="Décoration" 
+          style={{ 
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -52%) scale(1.5)',
+            width: size * 0.7,
+            height: size * 0.75,
+            zIndex: 10,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Composant Nom avec plaque nominative
+const DisplayNameWithNameplate = ({ user, className = '' }) => {
+  const nameplateId = user?.nameplate || 'none';
+  const nameplate = NAMEPLATES.find(n => n.id === nameplateId) || NAMEPLATES[0];
+  const displayName = user?.displayName || user?.username || 'Utilisateur';
+  
+  if (nameplateId === 'none' || !nameplate || !nameplate.url) {
+    return <span className={className}>{displayName}</span>;
+  }
+  
+  return (
+    <span 
+      className={className}
+      style={{
+        backgroundImage: `url(${nameplate.url})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        padding: '4px 12px',
+        borderRadius: '6px',
+        display: 'inline-block',
+        color: nameplate.color,
+        textShadow: nameplate.glow !== 'none' ? nameplate.glow : undefined,
+      }}
+    >
+      {displayName}
+    </span>
+  );
+};
 
 const buildDefaultServerStructure = (server) => {
   const baseId = String(server.id || server.name || 'server').toLowerCase().replace(/\s+/g, '-');
@@ -65,10 +253,15 @@ const readJsonResponse = async (response) => {
   }
 };
 
-const handleComposerKeyDown = (event, isSending, draft) => {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    if (!isSending && draft.trim()) event.currentTarget.form?.requestSubmit();
+const DEFAULT_VOICE_STATE = { joined: false, micOn: true, cameraOn: false, streaming: false };
+
+const areSameValue = (left, right) => {
+  if (Object.is(left, right)) return true;
+  if (left == null || right == null) return left === right;
+  try {
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch {
+    return false;
   }
 };
 
@@ -217,7 +410,7 @@ const ServerInviteCard = ({ inviteUrl, getAuthHeaders, onJoin, avatarTimestamp }
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-indigo-500/15 text-lg font-semibold text-indigo-200">
             {server.avatarUrl && !avatarFailed ? (
-              <img src={`${server.avatarUrl}?t=${Date.now()}`} alt={`Icône de ${server.name}`} className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
+              <img src={server.avatarUrl} alt={`Icône de ${server.name}`} className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
             ) : (
               server.name?.charAt(0)?.toUpperCase() || 'S'
             )}
@@ -273,7 +466,7 @@ const ServerIcon = ({ server, timestamp }) => {
     <>
       {hasImage ? (
         <img
-          src={`${server.avatarUrl}?t=${timestamp || Date.now()}`}
+          src={timestamp ? `${server.avatarUrl}?t=${timestamp}` : server.avatarUrl}
           alt={`Icône de ${server.name}`}
           className="h-full w-full rounded-2xl object-cover"
           onError={() => setImageFailed(true)}
@@ -287,12 +480,16 @@ const ServerIcon = ({ server, timestamp }) => {
   );
 };
 
-export default function AppHomePage() {
-  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
+function AppHomePage() {
+  const [avatarTimestamp, setAvatarTimestamp] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
   const { user, logout, getAuthHeaders, updateUser, updateSession } = useAuth();
+  const userRef = useRef(user);
+  const getAuthHeadersRef = useRef(getAuthHeaders);
+  userRef.current = user;
+  getAuthHeadersRef.current = getAuthHeaders;
   const [servers, setServers] = useState([]);
   const [friends, setFriends] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
@@ -302,7 +499,6 @@ export default function AppHomePage() {
   const [draftName, setDraftName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [message, setMessage] = useState('');
-  const [selectedServer, setSelectedServer] = useState(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -337,7 +533,7 @@ export default function AppHomePage() {
   const [serverBannedMembers, setServerBannedMembers] = useState([]);
   const [isUpdatingServer, setIsUpdatingServer] = useState(false);
   const [isGeneratingServerInvite, setIsGeneratingServerInvite] = useState(false);
-  const [voiceState, setVoiceState] = useState({ joined: false, micOn: true, cameraOn: false, streaming: false });
+  const [voiceState, setVoiceState] = useState(DEFAULT_VOICE_STATE);
   const [voiceParticipants, setVoiceParticipants] = useState([]);
   const [voiceChannelStates, setVoiceChannelStates] = useState({});
   const [voiceError, setVoiceError] = useState('');
@@ -378,15 +574,29 @@ export default function AppHomePage() {
   const privateMessageCountRef = useRef(0);
   const forceChannelScrollRef = useRef(false);
   const forcePrivateScrollRef = useRef(false);
+  const sendingPrivateRef = useRef(false);
   const voiceSocketRef = useRef(null);
   const peerConnectionsRef = useRef(new Map());
   const remoteAudioRef = useRef(new Map());
   const pendingIceCandidatesRef = useRef(new Map());
+  const serverDirectoryCacheRef = useRef(new Map());
+
+  const selectedServer = useMemo(() => {
+    if (!params.serverId) return null;
+    const fromList = servers.find((item) => String(item.id) === String(params.serverId));
+    if (fromList) return fromList;
+    return {
+      id: params.serverId,
+      name: 'Serveur',
+      structure: buildDefaultServerStructure({ id: params.serverId, name: 'Serveur' }),
+    };
+  }, [params.serverId, servers]);
 
   const activeChannelId = params.channelId || selectedServer?.structure?.categories?.[0]?.channels?.[0]?.id || null;
   const activeChannel = selectedServer?.structure?.categories
     ?.flatMap((category) => category.channels)
     ?.find((channel) => channel.id === activeChannelId) || null;
+  const activeChannelType = activeChannel?.type || null;
   const isServerOwner = Boolean(selectedServer?.owner);
   const channelConversationKey = `${selectedServer?.id || ''}:${activeChannelId || ''}`;
   const privateConversationKey = params.userId || '';
@@ -404,7 +614,7 @@ export default function AppHomePage() {
       ? privateChatUser?.displayName || privateChatUser?.username
       : selectedServer?.name;
     document.title = conversationName ? `Tavora | ${conversationName}` : 'Tavora';
-  }, [params.userId, privateChatUser, selectedServer]);
+  }, [params.userId, privateChatUser?.displayName, privateChatUser?.username, selectedServer?.name]);
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 640px)');
@@ -451,139 +661,147 @@ export default function AppHomePage() {
     if (isNearBottom(container)) setShowNewMessages(false);
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    const loadSocial = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/social/me`, { headers: getAuthHeaders() });
-        const data = await readJsonResponse(response);
-        if (!response.ok) throw new Error(data.message || 'Impossible de charger la vue sociale.');
-        if (cancelled) return;
-        setServers((data.servers || []).map(normalizeServer));
-        setFriends(data.friends || []);
-        setIncomingRequests(data.incomingRequests || []);
-        setOutgoingRequests(data.outgoingRequests || []);
-        if (data.user) {
-          const nextUser = { ...(user || {}), ...data.user };
-          const userChanged = Object.keys(data.user).some((key) => JSON.stringify(user?.[key]) !== JSON.stringify(nextUser[key]));
-          if (userChanged) updateUser(nextUser);
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    if (user) {
-      loadSocial();
-      const intervalId = window.setInterval(loadSocial, 1500);
-      return () => {
-        cancelled = true;
-        window.clearInterval(intervalId);
-      };
+useEffect(() => {
+  let cancelled = false;
+  const userId = user?._id || user?.id;
+  const applySocialData = (data) => {
+    const nextServers = (data.servers || []).map(normalizeServer);
+    const nextFriends = data.friends || [];
+    const nextIncoming = data.incomingRequests || [];
+    const nextOutgoing = data.outgoingRequests || [];
+    setServers((current) => (areSameValue(current, nextServers) ? current : nextServers));
+    setFriends((current) => (areSameValue(current, nextFriends) ? current : nextFriends));
+    setIncomingRequests((current) => (areSameValue(current, nextIncoming) ? current : nextIncoming));
+    setOutgoingRequests((current) => (areSameValue(current, nextOutgoing) ? current : nextOutgoing));
+    if (data.user) {
+      const currentUser = userRef.current;
+      const nextUser = { ...(currentUser || {}), ...data.user };
+      if (!areSameValue(currentUser, nextUser)) updateUser(nextUser);
     }
-    return undefined;
-  }, [getAuthHeaders, user]);
-
-  useEffect(() => {
-    if (!user) return undefined;
-    let cancelled = false;
-    let loading = false;
-    const loadNotifications = async () => {
-      if (loading) return;
-      loading = true;
-      try {
-        const response = await fetch(`${API_URL}/api/social/notifications`, { headers: getAuthHeaders() });
-        const data = await readJsonResponse(response);
-        if (!cancelled && response.ok) setLiveNotifications({ directMessages: data.directMessages || [], servers: data.servers || [] });
-      } catch (error) {
-        if (!cancelled) console.error(error);
-      } finally {
-        loading = false;
-      }
-    };
-    loadNotifications();
-    const intervalId = window.setInterval(loadNotifications, 1500);
-    return () => { cancelled = true; window.clearInterval(intervalId); };
-  }, [getAuthHeaders, user]);
-
-  useEffect(() => {
-    if (!params.serverId) {
-      setSelectedServer(null);
-      return;
+  };
+  const loadSocial = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/social/me`, { headers: getAuthHeadersRef.current() });
+      const data = await readJsonResponse(response);
+      if (!response.ok) throw new Error(data.message || 'Impossible de charger la vue sociale.');
+      if (cancelled) return;
+      applySocialData(data);
+    } catch (error) {
+      console.error(error);
     }
-    const server = servers.find((item) => String(item.id) === String(params.serverId));
-    if (server) {
-      setSelectedServer(server);
-      return;
-    }
-    setSelectedServer({
-      id: params.serverId,
-      name: 'Serveur',
-      structure: buildDefaultServerStructure({ id: params.serverId, name: 'Serveur' }),
-    });
-  }, [params.serverId, servers]);
-
-  useEffect(() => {
-    const loadMembers = async () => {
-      if (!selectedServer?.id) {
-        setServerMembers([]);
-        return;
-      }
-      try {
-        const [rolesResponse, membersResponse] = await Promise.all([
-          fetch(`${API_URL}/api/social/servers/${selectedServer.id}/roles`, { headers: getAuthHeaders() }),
-          fetch(`${API_URL}/api/social/servers/${selectedServer.id}/members`, { headers: getAuthHeaders() }),
-        ]);
-        const rolesData = await readJsonResponse(rolesResponse);
-        if (rolesResponse.ok) {
-          setServerRoles(rolesData.roles || []);
-          setServerPermissions(rolesData.permissions || []);
-        }
-        const membersData = await readJsonResponse(membersResponse);
-        if (membersResponse.ok) {
-          setServerMembers(membersData.members || []);
-        } else {
-          setServerMembers([]);
-        }
-      } catch (error) {
-        console.error(error);
-        setServerMembers([]);
-      }
-    };
-    loadMembers();
-  }, [getAuthHeaders, selectedServer?.id]);
-
-  useEffect(() => {
-    let cancelled = false;
-    let loading = false;
-    const loadMessages = async (reset = false) => {
-      if (loading) return;
-      if (!selectedServer?.id || !activeChannelId || activeChannel?.type !== 'text') {
-        setChannelMessages([]);
-        return;
-      }
-      loading = true;
-      if (reset) setChannelMessages([]);
-      try {
-        const response = await fetch(`${API_URL}/api/social/servers/${selectedServer.id}/messages/${activeChannelId}`, {
-          headers: getAuthHeaders(),
-        });
-        const data = await readJsonResponse(response);
-        if (response.ok && !cancelled) {
-          setChannelMessages(data.messages || []);
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        loading = false;
-      }
-    };
-    loadMessages(true);
-    const intervalId = window.setInterval(loadMessages, 1500);
+  };
+  if (userId) {
+    loadSocial();
+    const intervalId = window.setInterval(loadSocial, REFRESH_INTERVAL);
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [activeChannel?.type, activeChannelId, getAuthHeaders, selectedServer?.id]);
+  }
+  return undefined;
+}, [user?._id, user?.id, updateUser]);
+
+useEffect(() => {
+  if (!user) return undefined;
+  let cancelled = false;
+  let loading = false;
+  const loadNotifications = async () => {
+    if (loading) return;
+    loading = true;
+    try {
+      const response = await fetch(`${API_URL}/api/social/notifications`, { headers: getAuthHeaders() });
+      const data = await readJsonResponse(response);
+      if (!cancelled && response.ok) {
+        const nextNotifications = { directMessages: data.directMessages || [], servers: data.servers || [] };
+        setLiveNotifications((current) => (areSameValue(current, nextNotifications) ? current : nextNotifications));
+      }
+    } catch (error) {
+      if (!cancelled) console.error(error);
+    } finally {
+      loading = false;
+    }
+  };
+  loadNotifications();
+  const intervalId = window.setInterval(loadNotifications, REFRESH_INTERVAL);
+  return () => { 
+    cancelled = true; 
+    window.clearInterval(intervalId); 
+  };
+}, [user?._id, user?.id]);
+
+useEffect(() => {
+  const serverId = selectedServer?.id;
+  if (!serverId) return undefined;
+  const cached = serverDirectoryCacheRef.current.get(String(serverId));
+  if (cached) {
+    setServerRoles((current) => (areSameValue(current, cached.roles) ? current : cached.roles));
+    setServerPermissions((current) => (areSameValue(current, cached.permissions) ? current : cached.permissions));
+    setServerMembers((current) => (areSameValue(current, cached.members) ? current : cached.members));
+  }
+  let cancelled = false;
+  const loadMembers = async () => {
+    try {
+      const [rolesResponse, membersResponse] = await Promise.all([
+        fetch(`${API_URL}/api/social/servers/${serverId}/roles`, { headers: getAuthHeadersRef.current() }),
+        fetch(`${API_URL}/api/social/servers/${serverId}/members`, { headers: getAuthHeadersRef.current() }),
+      ]);
+      const rolesData = await readJsonResponse(rolesResponse);
+      const membersData = await readJsonResponse(membersResponse);
+      if (cancelled) return;
+      const nextRoles = rolesResponse.ok ? (rolesData.roles || []) : null;
+      const nextPermissions = rolesResponse.ok ? (rolesData.permissions || []) : null;
+      const nextMembers = membersResponse.ok ? (membersData.members || []) : [];
+      if (nextRoles) setServerRoles((current) => (areSameValue(current, nextRoles) ? current : nextRoles));
+      if (nextPermissions) setServerPermissions((current) => (areSameValue(current, nextPermissions) ? current : nextPermissions));
+      setServerMembers((current) => (areSameValue(current, nextMembers) ? current : nextMembers));
+      serverDirectoryCacheRef.current.set(String(serverId), {
+        roles: nextRoles || cached?.roles || [],
+        permissions: nextPermissions || cached?.permissions || [],
+        members: nextMembers,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  loadMembers();
+  return () => {
+    cancelled = true;
+  };
+}, [selectedServer?.id]);
+
+useEffect(() => {
+  const serverId = selectedServer?.id;
+  if (!serverId || !activeChannelId || activeChannelType !== 'text') return undefined;
+  let cancelled = false;
+  let loading = false;
+  const conversationKey = `${serverId}:${activeChannelId}`;
+  const shouldReset = channelConversationKeyRef.current !== conversationKey;
+  const loadMessages = async () => {
+    if (loading) return;
+    loading = true;
+    try {
+      const response = await fetch(`${API_URL}/api/social/servers/${serverId}/messages/${activeChannelId}`, {
+        headers: getAuthHeadersRef.current(),
+      });
+      const data = await readJsonResponse(response);
+      if (response.ok && !cancelled) {
+        const nextMessages = data.messages || [];
+        setChannelMessages((current) => (areSameValue(current, nextMessages) ? current : nextMessages));
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      loading = false;
+    }
+  };
+  if (shouldReset) setChannelMessages([]);
+  loadMessages();
+  const intervalId = window.setInterval(loadMessages, REFRESH_INTERVAL);
+  return () => {
+    cancelled = true;
+    window.clearInterval(intervalId);
+  };
+}, [selectedServer?.id, activeChannelId, activeChannelType]);
 
   useEffect(() => {
     if (channelConversationKeyRef.current !== channelConversationKey) {
@@ -687,15 +905,15 @@ export default function AppHomePage() {
   }, [activeVoiceChannelId, selectedServer?.id, user, voiceState.joined]);
 
   useEffect(() => {
-    if (activeChannel?.type === 'voice' && activeChannelId) {
-      const nextState = voiceChannelStates[activeChannelId] || { joined: false, micOn: true, cameraOn: false, streaming: false };
-      setVoiceState(nextState);
-      setActiveVoiceChannelId(activeChannelId);
-    } else {
-      setVoiceState({ joined: false, micOn: true, cameraOn: false, streaming: false });
-      setActiveVoiceChannelId(null);
+    if (activeChannelType === 'voice' && activeChannelId) {
+      const nextState = voiceChannelStates[activeChannelId] || DEFAULT_VOICE_STATE;
+      setVoiceState((current) => (areSameValue(current, nextState) ? current : nextState));
+      setActiveVoiceChannelId((current) => (current === activeChannelId ? current : activeChannelId));
+      return;
     }
-  }, [activeChannel?.type, activeChannelId, voiceChannelStates]);
+    setVoiceState((current) => (areSameValue(current, DEFAULT_VOICE_STATE) ? current : DEFAULT_VOICE_STATE));
+    setActiveVoiceChannelId((current) => (current == null ? current : null));
+  }, [activeChannelType, activeChannelId, voiceChannelStates]);
 
   const handleLogout = () => {
     logout();
@@ -713,7 +931,6 @@ export default function AppHomePage() {
   };
 
   const openServerSettingsFor = (server = selectedServer) => {
-    if (server && server.owner) setSelectedServer(server);
     setIsAccountSettingsOpen(false);
     setIsSettingsModalOpen(true);
   };
@@ -830,9 +1047,8 @@ export default function AppHomePage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Impossible de créer le serveur.');
       const createdServer = normalizeServer({ ...data.server, name: draftName.trim() });
-      setServers((prev) => [createdServer, ...prev]);
+      setServers((prev) => [createdServer, ...prev.filter((server) => String(server.id) !== String(createdServer.id))]);
       setPrivateChatUser(null);
-      setSelectedServer(createdServer);
       navigate(`/server/${createdServer.id}/channel/${createdServer.structure.categories[0].channels[0].id}`);
       setDraftName('');
       setMessage('Serveur créé avec succès.');
@@ -872,7 +1088,12 @@ export default function AppHomePage() {
       name: normalizedServer.name || server.name || 'Serveur',
     };
     setPrivateChatUser(null);
-    setSelectedServer(nextServer);
+    setServers((current) => {
+      const index = current.findIndex((item) => String(item.id) === String(nextServer.id));
+      if (index === -1) return [nextServer, ...current];
+      if (areSameValue(current[index], nextServer)) return current;
+      return current.map((item, itemIndex) => (itemIndex === index ? nextServer : item));
+    });
     const firstChannelId = nextServer.structure?.categories?.[0]?.channels?.[0]?.id;
     const targetPath = firstChannelId ? `/server/${nextServer.id}/channel/${firstChannelId}` : `/server/${nextServer.id}`;
     navigate(targetPath);
@@ -883,10 +1104,25 @@ export default function AppHomePage() {
       const response = await fetch(`${API_URL}/api/social/me`, { headers: getAuthHeaders() });
       const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.message || 'Impossible de recharger la vue sociale.');
-      setServers((data.servers || []).map(normalizeServer));
-      setFriends(data.friends || []);
-      setIncomingRequests(data.incomingRequests || []);
-      setOutgoingRequests(data.outgoingRequests || []);
+      const nextServers = (data.servers || []).map(normalizeServer);
+      const nextFriends = data.friends || [];
+      const nextIncoming = data.incomingRequests || [];
+      const nextOutgoing = data.outgoingRequests || [];
+      setServers((current) => (areSameValue(current, nextServers) ? current : nextServers));
+      setFriends((current) => (areSameValue(current, nextFriends) ? current : nextFriends));
+      setIncomingRequests((current) => (areSameValue(current, nextIncoming) ? current : nextIncoming));
+      setOutgoingRequests((current) => (areSameValue(current, nextOutgoing) ? current : nextOutgoing));
+
+      if (data.user) {
+        const currentUser = userRef.current;
+        const nextUser = { 
+          ...(currentUser || {}), 
+          ...data.user,
+          avatarDecoration: data.user?.avatarDecoration || null,
+          nameplate: data.user?.nameplate || 'none',
+        };
+        if (!areSameValue(currentUser, nextUser)) updateUser(nextUser);
+      }
     } catch (error) {
       console.error(error);
     }
@@ -907,7 +1143,6 @@ export default function AppHomePage() {
   const openDirectMessage = (targetUserId) => {
     const normalizedUserId = targetUserId?.id || targetUserId?._id || targetUserId;
     if (!normalizedUserId) return;
-    setSelectedServer(null);
     setIsProfileModalOpen(false);
     navigate(`/dm/${normalizedUserId}`);
   };
@@ -946,87 +1181,89 @@ export default function AppHomePage() {
     return undefined;
   }, [getAuthHeaders, selectedServer?.id]);
 
-  useEffect(() => {
-    const targetUserId = params.userId;
-    if (!targetUserId) {
-      setPrivateChatUser(null);
-      setPrivateMessages([]);
-      setIsLoadingPrivateChat(false);
-      return undefined;
-    }
-
-    let cancelled = false;
-    setSelectedServer(null);
+useEffect(() => {
+  const targetUserId = params.userId;
+  if (!targetUserId) {
     setPrivateChatUser(null);
     setPrivateMessages([]);
-    setPrivateDraft('');
-    setProfileMessage('');
-    setIsLoadingPrivateChat(true);
+    setIsLoadingPrivateChat(false);
+    return undefined;
+  }
 
-    const loadPrivateChat = async () => {
-      try {
-        const [profileResponse, messagesResponse] = await Promise.all([
-          fetch(`${API_URL}/api/social/profile/${targetUserId}`, { headers: getAuthHeaders() }),
-          fetch(`${API_URL}/api/social/messages/private/${targetUserId}`, { headers: getAuthHeaders() }),
-        ]);
-        const profileData = await readJsonResponse(profileResponse);
-        const messagesData = await readJsonResponse(messagesResponse);
-        if (!profileResponse.ok) throw new Error(profileData.message || 'Impossible de charger le profil.');
-        if (!messagesResponse.ok) throw new Error(messagesData.message || 'Impossible de charger les messages privés.');
-        if (cancelled) return;
-        setPrivateChatUser(profileData.user || messagesData.friend || { id: targetUserId });
-        setPrivateMessages(messagesData.messages || []);
-      } catch (error) {
-        if (!cancelled) {
-          setPrivateChatUser(null);
-          setPrivateMessages([]);
-          setProfileMessage(error.message || 'Impossible de charger la conversation.');
-        }
-      } finally {
-        if (!cancelled) setIsLoadingPrivateChat(false);
+  let cancelled = false;
+  setPrivateChatUser(null);
+  setPrivateMessages([]);
+  setPrivateDraft('');
+  setProfileMessage('');
+  setIsLoadingPrivateChat(true);
+
+  const loadPrivateChat = async () => {
+    try {
+      const [profileResponse, messagesResponse] = await Promise.all([
+        fetch(`${API_URL}/api/social/profile/${targetUserId}`, { headers: getAuthHeaders() }),
+        fetch(`${API_URL}/api/social/messages/private/${targetUserId}`, { headers: getAuthHeaders() }),
+      ]);
+      const profileData = await readJsonResponse(profileResponse);
+      const messagesData = await readJsonResponse(messagesResponse);
+      if (!profileResponse.ok) throw new Error(profileData.message || 'Impossible de charger le profil.');
+      if (!messagesResponse.ok) throw new Error(messagesData.message || 'Impossible de charger les messages privés.');
+      if (cancelled) return;
+      setPrivateChatUser(profileData.user || messagesData.friend || { id: targetUserId });
+      setPrivateMessages(messagesData.messages || []);
+    } catch (error) {
+      if (!cancelled) {
+        setPrivateChatUser(null);
+        setPrivateMessages([]);
+        setProfileMessage(error.message || 'Impossible de charger la conversation.');
       }
-    };
+    } finally {
+      if (!cancelled) setIsLoadingPrivateChat(false);
+    }
+  };
 
-    loadPrivateChat();
-    return () => {
-      cancelled = true;
-    };
-  }, [getAuthHeaders, navigate, params.userId]);
+  loadPrivateChat();
+  return () => {
+    cancelled = true;
+  };
+}, [params.userId]); // ← Enlève getAuthHeaders et navigate
 
-  useEffect(() => {
-    const targetUserId = params.userId;
-    if (!targetUserId) return undefined;
-    markDirectMessageRead(targetUserId);
-    let cancelled = false;
-    let loading = false;
-    const syncPrivateMessages = async () => {
-      if (loading) return;
-      loading = true;
-      try {
-        const response = await fetch(`${API_URL}/api/social/messages/private/${targetUserId}`, { headers: getAuthHeaders() });
-        const data = await readJsonResponse(response);
-        if (!response.ok) throw new Error(data.message || 'Impossible de synchroniser les messages privés.');
-        if (!cancelled) {
-          setPrivateMessages((previousMessages) => mergeMessages(previousMessages, data.messages || []));
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.error(error);
-        }
-      } finally {
-        loading = false;
+useEffect(() => {
+  const targetUserId = params.userId;
+  if (!targetUserId) return undefined;
+  markDirectMessageRead(targetUserId);
+  let cancelled = false;
+  let loading = false;
+  const syncPrivateMessages = async () => {
+    if (loading) return;
+    loading = true;
+    try {
+      const response = await fetch(`${API_URL}/api/social/messages/private/${targetUserId}`, { headers: getAuthHeaders() });
+      const data = await readJsonResponse(response);
+      if (!response.ok) throw new Error(data.message || 'Impossible de synchroniser les messages privés.');
+      if (!cancelled) {
+        setPrivateMessages((previousMessages) => mergeMessages(previousMessages, data.messages || []));
       }
-    };
-    const intervalId = window.setInterval(syncPrivateMessages, 1500);
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [getAuthHeaders, params.userId]);
+    } catch (error) {
+      if (!cancelled) {
+        console.error(error);
+      }
+    } finally {
+      loading = false;
+    }
+  };
+  syncPrivateMessages();
+  const intervalId = window.setInterval(syncPrivateMessages, REFRESH_INTERVAL);
+  return () => {
+    cancelled = true;
+    window.clearInterval(intervalId);
+  };
+}, [params.userId]); // ← Enlève getAuthHeaders
 
   const handleSendPrivateMessage = async (event) => {
     event.preventDefault();
+    if (sendingPrivateRef.current || isSendingPrivateMessage) return;
     if (!privateDraft.trim() || !params.userId) return;
+    sendingPrivateRef.current = true;
     const content = privateDraft.trim();
     if (privateChatUser?.isOfficial && content.startsWith('/send ')) {
       const match = content.match(/^\/send\s+"([\s\S]+)"\s+([^\s]+)$/);
@@ -1055,6 +1292,7 @@ export default function AppHomePage() {
     const temporaryId = `pending-private-${Date.now()}`;
     const optimisticMessage = { _id: temporaryId, id: temporaryId, isPending: true, authorId: user?._id || user?.id, authorDisplayName: user?.displayName || user?.username || 'Utilisateur', authorUsername: user?.username || 'user', authorAvatarUrl: user?.avatarUrl || '', content, createdAt: new Date().toISOString() };
     forcePrivateScrollRef.current = true;
+    sendingPrivateRef.current = true;
     setPrivateMessages((prev) => mergeMessages(prev, [optimisticMessage]));
     setPrivateDraft('');
     setIsSendingPrivateMessage(true);
@@ -1073,6 +1311,7 @@ export default function AppHomePage() {
       setPrivateDraft(content);
       setProfileMessage(error.message || 'Impossible d’envoyer le message privé.');
     } finally {
+      sendingPrivateRef.current = false;
       setIsSendingPrivateMessage(false);
     }
   };
@@ -1142,7 +1381,12 @@ export default function AppHomePage() {
         setServers(nextServers);
         if (data.server?.id) {
           const joinedServer = normalizeServer({ ...data.server, id: data.server.id });
-          setSelectedServer(joinedServer);
+          setServers((current) => {
+            const exists = current.some((server) => String(server.id) === String(joinedServer.id));
+            return exists
+              ? current.map((server) => (String(server.id) === String(joinedServer.id) ? joinedServer : server))
+              : [...current, joinedServer];
+          });
           navigate(`/server/${joinedServer.id}`);
         }
       }
@@ -1220,7 +1464,6 @@ export default function AppHomePage() {
         ...data.server,
       });
       invalidateServerSummary(updatedServer.id);
-      setSelectedServer(updatedServer);
       setServers((prev) => prev.map((server) => (server.id === updatedServer.id ? updatedServer : server)));
       setServerSettingsMessage('Paramètres du serveur mis à jour.');
     } catch (error) {
@@ -1236,7 +1479,6 @@ export default function AppHomePage() {
     const data = await readJsonResponse(response);
     if (!response.ok) throw new Error(data.message || 'Impossible de modifier les salons.');
     const updatedServer = { ...selectedServer, structure: data.structure };
-    setSelectedServer(updatedServer);
     setServers((current) => current.map((server) => String(server.id) === String(updatedServer.id) ? updatedServer : server));
     setMessage(successMessage);
     return data.structure;
@@ -1594,7 +1836,7 @@ export default function AppHomePage() {
     const requestId = profileRequestIdRef.current + 1;
     profileRequestIdRef.current = requestId;
     setProfileTarget(null);
-    setProfileDraft({ displayName: '', username: '', bio: '', avatarUrl: '', bannerUrl: '', activity: null });
+    setProfileDraft({ displayName: '', username: '', bio: '', avatarUrl: '', bannerUrl: '', activity: null, avatarDecoration: null, nameplate: 'none' });
     const loadAudioActivity = async (targetId) => {
       if (!targetId) return null;
       try {
@@ -1618,6 +1860,8 @@ export default function AppHomePage() {
         avatarUrl: sourceProfile.avatarUrl || '',
         bannerUrl: sourceProfile.bannerUrl || '',
         activity: sourceProfile.activity || null,
+        avatarDecoration: sourceProfile.avatarDecoration || null,
+        nameplate: sourceProfile.nameplate || 'none',
       });
       setProfileMessage('');
       setIsProfileModalOpen(true);
@@ -1633,6 +1877,8 @@ export default function AppHomePage() {
         avatarUrl: (profileUser || {}).avatarUrl || '',
         bannerUrl: (profileUser || {}).bannerUrl || '',
         activity: (profileUser || {}).activity || null,
+        avatarDecoration: (profileUser || {}).avatarDecoration || null,
+        nameplate: (profileUser || {}).nameplate || 'none',
       });
       setProfileMessage('');
       setIsProfileModalOpen(true);
@@ -1653,6 +1899,8 @@ export default function AppHomePage() {
             avatarUrl: fallbackProfile.avatarUrl || '',
             bannerUrl: fallbackProfile.bannerUrl || '',
             activity: fallbackProfile.activity || null,
+            avatarDecoration: fallbackProfile.avatarDecoration || null,
+            nameplate: fallbackProfile.nameplate || 'none',
           });
           setProfileMessage('');
           setIsProfileModalOpen(true);
@@ -1672,6 +1920,8 @@ export default function AppHomePage() {
         avatarUrl: sourceProfile.avatarUrl || '',
         bannerUrl: sourceProfile.bannerUrl || '',
         activity: sourceProfile.activity || null,
+        avatarDecoration: sourceProfile.avatarDecoration || null,
+        nameplate: sourceProfile.nameplate || 'none',
       });
       setProfileMessage('');
       setIsProfileModalOpen(true);
@@ -1687,6 +1937,8 @@ export default function AppHomePage() {
         avatarUrl: fallbackProfile.avatarUrl || '',
         bannerUrl: fallbackProfile.bannerUrl || '',
         activity: fallbackProfile.activity || null,
+        avatarDecoration: fallbackProfile.avatarDecoration || null,
+        nameplate: fallbackProfile.nameplate || 'none',
       });
       setProfileMessage(error.message || 'Impossible de charger le profil.');
       setIsProfileModalOpen(true);
@@ -1717,6 +1969,7 @@ export default function AppHomePage() {
     }
   };
 
+  // Dans AppHomePage.jsx, modifie la fonction handleSaveProfile
   const handleSaveProfile = async (event, draftOverride = profileDraft) => {
     event?.preventDefault();
     if (!user) return;
@@ -1732,6 +1985,8 @@ export default function AppHomePage() {
           bannerUrl: draftOverride.bannerUrl,
           activity: draftOverride.activity,
           status: draftOverride.status || user.status || 'En ligne',
+          avatarDecoration: draftOverride.avatarDecoration || user?.avatarDecoration || null,
+          nameplate: draftOverride.nameplate || user?.nameplate || 'none',
         }),
       });
       const data = await readJsonResponse(response);
@@ -1746,8 +2001,12 @@ export default function AppHomePage() {
         avatarUrl: nextUser.avatarUrl || '',
         bannerUrl: nextUser.bannerUrl || '',
         activity: nextUser.activity || null,
+        avatarDecoration: nextUser.avatarDecoration || null,
+        nameplate: nextUser.nameplate || 'none',
       });
       setProfileMessage('Profil mis à jour.');
+      await refreshSocial();
+      setAvatarTimestamp(Date.now());
       return 'Profil mis à jour.';
     } catch (error) {
       setProfileMessage(error.message || 'Impossible de sauvegarder le profil.');
@@ -1787,9 +2046,68 @@ export default function AppHomePage() {
     { id: 'developpeur', icon: Code, label: 'Développeur' },
   ];
 
+  const handleOpenProfile = useCallback((profile) => {
+    openProfileModal(profile);
+  }, [openProfileModal]);
+  
+  const handleToggleMobileSidebar = useCallback(() => {
+    setIsMobileSidebarOpen((open) => !open);
+  }, []);
+  
+  const handleOpenServer = useCallback((server) => {
+    openServer(server);
+  }, [openServer]);
+  
+  const handleOpenHome = useCallback(() => {
+    navigate('/home');
+  }, [navigate]);
+  
+  const handleOpenChannel = useCallback((channelId) => {
+    navigate(`/server/${selectedServer?.id}/channel/${channelId}`);
+    setIsMobileSidebarOpen(false);
+  }, [navigate, selectedServer?.id]);
+  
+  const handleOpenProfileModal = useCallback((profile, isSelf = false) => {
+    openProfileModal(profile, isSelf);
+  }, [openProfileModal]);
+  
+  const handleOpenDirectMessage = useCallback((targetUserId) => {
+    openDirectMessage(targetUserId);
+  }, [openDirectMessage]);
+  
+  const handleOpenSettings = useCallback(() => {
+    openAccountSettings();
+  }, [openAccountSettings]);
+  
+  const handleOpenServerSettings = useCallback(() => {
+    openServerSettingsFor();
+  }, [openServerSettingsFor]);
+  
+  const handleOpenInvite = useCallback(() => {
+    setIsInviteModalOpen(true);
+  }, []);
+  
+  const handleOpenCreateServerModal = useCallback(() => {
+    setIsServerModalOpen(true);
+  }, []);
+  
+  const handleJoinServer = useCallback(() => {
+    setIsServerModalOpen(true);
+  }, []);
+  
+  const handleOpenFriendModal = useCallback(() => {
+    setIsFriendModalOpen(true);
+  }, []);
+
   return (
     <div className="tavora-app-shell flex h-screen flex-col overflow-hidden text-white">
-      <GlobalTopBar getAuthHeaders={getAuthHeaders} user={user} userId={user?._id || user?.id} onOpenProfile={(profile) => openProfileModal(profile)} onToggleMobileSidebar={() => setIsMobileSidebarOpen((open) => !open)} />
+    <GlobalTopBar
+      getAuthHeaders={getAuthHeaders}
+      user={user}
+      userId={user?._id || user?.id}
+      onOpenProfile={handleOpenProfile}
+      onToggleMobileSidebar={handleToggleMobileSidebar}
+    />
       <div className="tavora-workspace flex min-h-0 flex-1 overflow-visible">
         <aside className="tavora-server-rail flex w-[64px] flex-col items-center justify-between py-2 shrink-0">
           <div className="flex flex-col items-center gap-2 w-full">
@@ -1877,7 +2195,7 @@ export default function AppHomePage() {
         </aside>
 
         <nav className="tavora-mobile-bottom-nav" aria-label="Navigation mobile">
-          <button type="button" onClick={() => { setSelectedServer(null); setPrivateChatUser(null); navigate('/home'); }} className={!selectedServer && !params.userId ? 'is-active' : ''} aria-label="Accueil" title="Accueil"><Home size={18} /><span>Accueil</span></button>
+          <button type="button" onClick={() => { setPrivateChatUser(null); navigate('/home'); }} className={!selectedServer && !params.userId ? 'is-active' : ''} aria-label="Accueil" title="Accueil"><Home size={18} /><span>Accueil</span></button>
           <div className="tavora-mobile-server-list">
             {servers.map((server) => <button key={server.id} type="button" onClick={() => openServer(server)} className={selectedServer?.id === server.id ? 'is-active' : ''} aria-label={server.name} title={server.name}><span className="tavora-mobile-server-icon"><ServerIcon server={server} timestamp={avatarTimestamp} /></span></button>)}
             <button type="button" onClick={() => setIsServerModalOpen(true)} aria-label="Créer ou rejoindre un serveur" title="Créer ou rejoindre un serveur"><Plus size={18} /></button>
@@ -1895,13 +2213,13 @@ export default function AppHomePage() {
           friends={filteredFriends}
           friendSearch={friendSearch}
           onFriendSearchChange={setFriendSearch}
-          onOpenServer={openServer}
-          onOpenHome={() => navigate('/home')}
-          onOpenChannel={(channelId) => { navigate(`/server/${selectedServer?.id}/channel/${channelId}`); setIsMobileSidebarOpen(false); }}
-          onOpenProfile={openProfileModal}
-          onOpenDirectMessage={openDirectMessage}
+          onOpenServer={handleOpenServer}
+          onOpenHome={handleOpenHome}
+          onOpenChannel={handleOpenChannel}
+          onOpenProfile={handleOpenProfileModal}
+          onOpenDirectMessage={handleOpenDirectMessage}
           user={user}
-          onOpenSettings={openAccountSettings}
+          onOpenSettings={handleOpenSettings}
           isServerOwner={isServerOwner || serverPermissions.includes('ADMINISTRATOR') || serverPermissions.includes('MANAGE_SERVER')}
           canManageChannels={isServerOwner || serverPermissions.includes('ADMINISTRATOR') || serverPermissions.includes('MANAGE_CHANNELS')}
           onCreateChannel={handleCreateChannel}
@@ -1910,11 +2228,11 @@ export default function AppHomePage() {
           onCreateCategory={handleCreateCategory}
           onEditCategory={handleEditCategory}
           onDeleteCategory={handleDeleteCategory}
-          onOpenServerSettings={() => openServerSettingsFor()}
-          onOpenInvite={() => setIsInviteModalOpen(true)}
-          onCreateServer={() => setIsServerModalOpen(true)}
-          onJoinServer={() => setIsServerModalOpen(true)}
-          onOpenFriendModal={() => setIsFriendModalOpen(true)}
+          onOpenServerSettings={handleOpenServerSettings}
+          onOpenInvite={handleOpenInvite}
+          onCreateServer={handleOpenCreateServerModal}
+          onJoinServer={handleJoinServer}
+          onOpenFriendModal={handleOpenFriendModal}
           incomingRequests={incomingRequests}
           onFriendRequestDecision={handleFriendRequestDecision}
         />
@@ -1968,10 +2286,8 @@ export default function AppHomePage() {
                       className="flex w-full items-center justify-between rounded-xl bg-[#1a1a24] px-3 py-2 text-sm text-white/60 hover:bg-[#222233] transition cursor-pointer border border-white/5"
                     >
                       <span className="flex items-center gap-2.5">
-                        <div className="h-7 w-7 rounded-full bg-[#1a1a24] flex items-center justify-center border border-white/5 overflow-hidden">
-                          {friend.avatarUrl ? <img src={friend.avatarUrl} alt="avatar" className="h-full w-full object-cover" /> : <User size={14} className="text-white/20" />}
-                        </div>
-                        {friend.displayName || friend.username}
+                        <AvatarWithDecoration user={friend} size={28} />
+                        <DisplayNameWithNameplate user={friend} className="text-sm font-medium" />
                       </span>
                       <div className="flex items-center gap-2">
                         <button type="button" onClick={(event) => { event.stopPropagation(); openDirectMessage(friend.id); }} className="rounded-md bg-indigo-500/15 px-2 py-1 text-[11px] text-indigo-300">MP</button>
@@ -2108,7 +2424,7 @@ export default function AppHomePage() {
                         Nouveaux messages ↓
                       </button>
                     ) : null}
-                    <MessageComposer value={privateDraft} onChange={(nextValue) => { setPrivateDraft(nextValue); setCommandIndex(0); }} onSubmit={handleSendPrivateMessage} isSending={isSendingPrivateMessage} placeholder={`Écrire à ${privateChatUser?.displayName || privateChatUser?.username || 'cet utilisateur'}...`} className="mx-6 mb-5 mt-3" onKeyDown={(event) => { if (commandSuggestions.length && ['ArrowDown', 'ArrowUp', 'Tab'].includes(event.key)) { event.preventDefault(); if (event.key === 'Tab') chooseOfficialCommand(commandSuggestions[commandIndex]); else setCommandIndex((current) => (current + (event.key === 'ArrowDown' ? 1 : -1) + commandSuggestions.length) % commandSuggestions.length); return; } handleComposerKeyDown(event, isSendingPrivateMessage, privateDraft); }}>
+                    <MessageComposer value={privateDraft} onChange={(nextValue) => { setPrivateDraft(nextValue); setCommandIndex(0); }} onSubmit={handleSendPrivateMessage} isSending={isSendingPrivateMessage} placeholder={`Écrire à ${privateChatUser?.displayName || privateChatUser?.username || 'cet utilisateur'}...`} className="mx-6 mb-5 mt-3" onKeyDown={(event) => { if (commandSuggestions.length && ['ArrowDown', 'ArrowUp', 'Tab'].includes(event.key)) { event.preventDefault(); if (event.key === 'Tab') chooseOfficialCommand(commandSuggestions[commandIndex]); else setCommandIndex((current) => (current + (event.key === 'ArrowDown' ? 1 : -1) + commandSuggestions.length) % commandSuggestions.length); } }}>
                       {commandSuggestions.length ? <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-20 rounded-xl border border-white/10 bg-[#111118] p-1 shadow-2xl">{commandSuggestions.map((command, index) => <button key={command.name} type="button" onClick={() => chooseOfficialCommand(command)} className={`flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left ${index === commandIndex ? 'bg-cyan-200/10 text-white' : 'text-white/70 hover:bg-white/[0.06]'}`}><span className="font-mono text-sm text-cyan-100">{command.name}</span><span className="text-xs text-white/45">{command.description}</span></button>)}</div> : null}
                     </MessageComposer>
                 </div>
@@ -2279,25 +2595,51 @@ export default function AppHomePage() {
                         if (!groups[key]) groups[key] = { role, members: [] };
                         groups[key].members.push(member);
                         return groups;
-                      }, {})).sort(([, left], [, right]) => (right.role?.position || 0) - (left.role?.position || 0)).map(([groupKey, group]) => <section key={groupKey}><p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: group.role?.color || 'rgba(255,255,255,0.3)' }}>{group.role?.name || 'Membres'} · {group.members.length}</p>{group.members.map((member) => (
-                        <button
-                          key={member.id}
-                          type="button"
-                          onClick={() => openProfileModal(member, false)}
-                          className="flex w-full items-center gap-3 rounded-2xl border border-white/5 bg-[#13131e] px-3 py-3 text-left transition hover:bg-[#1a1a24]"
-                        >
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-300">
-                            {member.avatarUrl ? <img src={member.avatarUrl} alt="avatar" className="h-full w-full object-cover" /> : (member.displayName || member.username || 'U').charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="truncate text-sm font-medium" style={{ color: member.roleColor || '#f5f5f7' }}>{member.roleIconUrl ? <img src={member.roleIconUrl} alt="" className="mr-1 inline h-3.5 w-3.5 rounded object-cover align-[-2px]" /> : null}{member.displayName || member.username || 'Membre'}</p>
-                              {member.isOwner ? <Crown size={12} className="text-amber-400/70" /> : null}
-                            </div>
-                            <p className="truncate text-[11px] text-white/30">@{member.username || 'user'}</p>
-                          </div>
-                        </button>
-                      ))}</section>) : (
+                      }, {})).sort(([, left], [, right]) => (right.role?.position || 0) - (left.role?.position || 0)).map(([groupKey, group]) => <section key={groupKey}><p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: group.role?.color || 'rgba(255,255,255,0.3)' }}>{group.role?.name || 'Membres'} · {group.members.length}</p>
+{group.members.map((member) => {
+  const nameplateId = member?.nameplate || 'none';
+  const nameplate = NAMEPLATES.find(n => n.id === nameplateId) || NAMEPLATES[0];
+  const hasNameplate = nameplateId !== 'none' && nameplate?.url;
+  
+  return (
+    <button
+      key={member.id}
+      type="button"
+      onClick={() => openProfileModal(member, false)}
+      className="flex w-full items-center gap-3 rounded-2xl border border-white/5 bg-[#13131e] px-3 py-3 text-left transition hover:bg-[#1a1a24] relative overflow-hidden"
+      style={{
+        backgroundImage: hasNameplate ? `url(${nameplate.url})` : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      {/* Overlay pour la lisibilité */}
+      {hasNameplate && (
+        <div className="absolute inset-0 bg-black/30" />
+      )}
+      
+      <div className="relative z-10 flex w-full items-center gap-3">
+        <AvatarWithDecoration user={member} size={40} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p 
+              className="truncate text-sm font-medium" 
+              style={{ 
+              }}
+            >
+              {member.roleIconUrl ? <img src={member.roleIconUrl} alt="" className="mr-1 inline h-3.5 w-3.5 rounded object-cover align-[-2px]" /> : null}
+              {member.displayName || member.username || 'Membre'}
+            </p>
+            {member.isOwner ? <Crown size={12} className="text-amber-400/70" /> : null}
+          </div>
+          <p className="truncate text-[11px] text-white/70">@{member.username || 'user'}</p>
+        </div>
+      </div>
+    </button>
+  );
+})}
+                      </section>) : (
                         <div className="rounded-2xl border border-white/5 bg-[#13131e] px-3 py-4 text-sm text-white/35">
                           Aucun membre à afficher pour le moment.
                         </div>
@@ -3167,3 +3509,5 @@ export default function AppHomePage() {
     </div>
   );
 }
+
+export default AppHomePage;

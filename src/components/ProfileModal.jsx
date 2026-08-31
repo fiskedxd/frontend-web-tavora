@@ -2,11 +2,228 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, UserPlus, MoreHorizontal, Send, Ban, Flag, UserMinus, 
   User, Camera, Pencil, Users, Server, MessageCircle, 
-  Circle, Heart, Share2, Sparkles, Music, Gamepad2,
-  Calendar, Clock, MapPin, Link as LinkIcon, Check, Unlock
+  Heart, Share2, Sparkles, Music, Gamepad2,
+  Calendar, Clock, MapPin, Link as LinkIcon, Check, Unlock,
+  Shield, Star, Crown, BadgeCheck, Activity, Award, Globe,
+  Type
 } from 'lucide-react';
 import ProfileBadges from './ProfileBadges';
 import { API_URL } from '../utils/api';
+
+// Décorations d'avatar organisées par catégories
+const AVATAR_DECORATIONS = [
+  {
+    id: 'spooky_night',
+    name: 'Spooky Night',
+    banner: 'https://discord-decoration.art/banners/spooky_night.webp',
+    bannerText: 'https://discord-decoration.art/bannertext/spooky_night.webp',
+    description: 'Beware what lurks in the dark...',
+    tag: 'FALL 2024',
+    decorations: [
+      { id: 'spooky_cat_ears', url: 'https://discord-decoration.art/decorations/spooky_cat_ears.png' },
+      { id: 'spooky_cat_ears_midnight', url: 'https://discord-decoration.art/decorations/spooky_cat_ears_midnight.webp' },
+      { id: 'candlelight', url: 'https://discord-decoration.art/decorations/candlelight.webp' },
+      { id: 'candlelight_crimson', url: 'https://discord-decoration.art/decorations/candlelight_crimson.png' },
+      { id: 'candlelight_dark', url: 'https://discord-decoration.art/decorations/candlelight_dark.png' },
+      { id: 'hood_dark', url: 'https://discord-decoration.art/decorations/hood_dark.webp' },
+      { id: 'hood_crimson', url: 'https://discord-decoration.art/decorations/hood_crimson.webp' },
+      { id: 'witch_hat_plum', url: 'https://discord-decoration.art/decorations/witch_hat_plum.webp' },
+      { id: 'witch_hat_midnight', url: 'https://discord-decoration.art/decorations/witch_hat_midnight.webp' },
+      { id: 'zombie_food', url: 'https://discord-decoration.art/decorations/zombie_food.png' },
+      { id: 'zombie_food_purple', url: 'https://discord-decoration.art/decorations/zombie_food_purple.png' },
+      { id: 'bloodthirsty', url: 'https://discord-decoration.art/decorations/bloodthirsty.png' },
+      { id: 'bloodthirsty_green', url: 'https://discord-decoration.art/decorations/bloodthirsty_green.png' },
+      { id: 'bloodthirsty_gold', url: 'https://discord-decoration.art/decorations/bloodthirsty_gold.png' },
+    ]
+  },
+  {
+    id: 'anime_v2',
+    name: 'Anime 2',
+    banner: 'https://discord-decoration.art/banners/anime_v2.webp',
+    bannerText: 'https://discord-decoration.art/bannertext/anime_v2.webp',
+    description: 'Senpai will definitely notice you.',
+    decorations: [
+      { id: 'cat_ears', url: 'https://discord-decoration.art/decorations/cat_ears.png' },
+      { id: 'ki_energy', url: 'https://discord-decoration.art/decorations/ki_energy.png' },
+      { id: 'heartbloom', url: 'https://discord-decoration.art/decorations/heartbloom.png' },
+      { id: 'dismay', url: 'https://discord-decoration.art/decorations/dismay.png' },
+      { id: 'rage', url: 'https://discord-decoration.art/decorations/rage.png' },
+      { id: 'in_tears', url: 'https://discord-decoration.art/decorations/in_tears.png' },
+      { id: 'radiating_energy', url: 'https://discord-decoration.art/decorations/radiating_energy.png' },
+      { id: 'soul_leaving_body', url: 'https://discord-decoration.art/decorations/soul_leaving_body.png' },
+      { id: 'sweat_drops', url: 'https://discord-decoration.art/decorations/sweat_drops.png' },
+      { id: 'starry_eyed', url: 'https://discord-decoration.art/decorations/starry_eyed.png' },
+      { id: 'in_love', url: 'https://discord-decoration.art/decorations/in_love.png' },
+      { id: 'shocked', url: 'https://discord-decoration.art/decorations/shocked.png' },
+      { id: 'angry', url: 'https://discord-decoration.art/decorations/angry.png' },
+    ]
+  },
+  {
+    id: 'anime_v1',
+    name: 'Anime',
+    banner: 'https://discord-decoration.art/banners/anime_v1.webp',
+    bannerText: 'https://discord-decoration.art/bannertext/anime_v1.webp',
+    description: 'Senpai will definitely notice you.',
+    decorations: [
+      { id: 'radiating_energy_v1', url: 'https://discord-decoration.art/decorations/radiating_energy.png' },
+      { id: 'soul_leaving_body_v1', url: 'https://discord-decoration.art/decorations/soul_leaving_body.png' },
+      { id: 'sweat_drops_v1', url: 'https://discord-decoration.art/decorations/sweat_drops.png' },
+      { id: 'starry_eyed_v1', url: 'https://discord-decoration.art/decorations/starry_eyed.png' },
+      { id: 'in_love_v1', url: 'https://discord-decoration.art/decorations/in_love.png' },
+      { id: 'shocked_v1', url: 'https://discord-decoration.art/decorations/shocked.png' },
+      { id: 'angry_v1', url: 'https://discord-decoration.art/decorations/angry.png' },
+    ]
+  },
+  {
+    id: 'anime_v3',
+    name: 'Anime 3',
+    banner: 'https://discord-decoration.art/banners/anime_v3.webp',
+    bannerText: 'https://discord-decoration.art/bannertext/anime_v3.webp',
+    description: 'Senpai will definitely notice you.',
+    decorations: [
+      { id: 'ki_energy_v3', url: 'https://discord-decoration.art/decorations/ki_energy.png' },
+      { id: 'ki_energy_green', url: 'https://discord-decoration.art/decorations/ki_energy_green.png' },
+      { id: 'ki_energy_cyan', url: 'https://discord-decoration.art/decorations/ki_energy_cyan.png' },
+      { id: 'ki_energy_blue', url: 'https://discord-decoration.art/decorations/ki_energy_blue.png' },
+      { id: 'ki_energy_fuchsia', url: 'https://discord-decoration.art/decorations/ki_energy_fuchsia.png' },
+    ]
+  },
+  {
+    id: 'lunar_new_year',
+    name: 'Nouvel An Lunaire',
+    banner: 'https://img.avatardecoration.com/banners/lunar_new_year_2025.png',
+    bannerText: 'https://img.avatardecoration.com/bannertext/lunar_new_year_2025.png',
+    description: 'Shed the old, embrace the new.',
+    decorations: [
+      { id: 'snakes_hug', url: 'https://img.avatardecoration.com/decorations/snakes_hug.png' },
+      { id: 'lotus_flower', url: 'https://img.avatardecoration.com/decorations/lotus_flower.png' },
+      { id: 'red_lantern', url: 'https://img.avatardecoration.com/decorations/red_lantern.png' },
+      { id: 'fan_flourish', url: 'https://img.avatardecoration.com/decorations/fan_flourish.png' },
+      { id: 'lunar_lanterns', url: 'https://img.avatardecoration.com/decorations/lunar_lanterns.png' },
+      { id: 'firecrackers', url: 'https://img.avatardecoration.com/decorations/firecrackers.png' },
+      { id: 'dragons_smile', url: 'https://img.avatardecoration.com/decorations/dragons_smile.png' },
+      { id: 'lucky_envelopes', url: 'https://img.avatardecoration.com/decorations/lucky_envelopes.png' },
+      { id: 'koi_pond', url: 'https://img.avatardecoration.com/decorations/koi_pond.png' },
+    ]
+  },
+  {
+    id: 'steampunk',
+    name: 'Steampunk',
+    banner: 'https://img.avatardecoration.com/banners/steampunk.png',
+    bannerText: 'https://img.avatardecoration.com/bannertext/steampunk.png',
+    description: 'What shall we tinker on today?',
+    decorations: [
+      { id: 'steampunk_cat_ears', url: 'https://img.avatardecoration.com/decorations/steampunk_cat_ears.png' },
+      { id: 'mech_flora', url: 'https://img.avatardecoration.com/decorations/mech_flora.png' },
+      { id: 'bowler_hat', url: 'https://img.avatardecoration.com/decorations/bowler_hat.png' },
+      { id: 'brass_beats', url: 'https://img.avatardecoration.com/decorations/brass_beats.png' },
+      { id: 'timekeepers_clock', url: 'https://img.avatardecoration.com/decorations/timekeepers_clock.png' },
+      { id: 'flux_alchemy', url: 'https://img.avatardecoration.com/decorations/flux_alchemy.png' },
+    ]
+  },
+];
+
+// Plaques nominatives - URLs Discord officielles avec noms personnalisés
+const NAMEPLATES = [
+  { 
+    id: 'none', 
+    name: 'Aucune', 
+    url: null,
+    color: '#ffffff',
+    glow: 'none'
+  },
+  { 
+    id: 'galactic_blue', 
+    name: 'Bleu Galactique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1495806574269038713/static',
+    color: '#5865F2',
+    glow: '0 0 20px #5865F2'
+  },
+  { 
+    id: 'emerald_glow', 
+    name: 'Émeraude Lumineuse', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1495807265175900180/static',
+    color: '#57F287',
+    glow: '0 0 20px #57F287'
+  },
+  { 
+    id: 'crimson_fire', 
+    name: 'Feu Cramoisi', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1538991887497695252/static',
+    color: '#ED4245',
+    glow: '0 0 20px #ED4245'
+  },
+  { 
+    id: 'golden_radiance', 
+    name: 'Rayonnement Doré', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1531411317477478654/static',
+    color: '#FEE75C',
+    glow: '0 0 20px #FEE75C'
+  },
+  { 
+    id: 'neon_pulse', 
+    name: 'Pulsation Néon', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1488244924066566185/static',
+    color: '#EB459E',
+    glow: '0 0 20px #EB459E'
+  },
+  { 
+    id: 'ocean_depth', 
+    name: 'Profondeur Océanique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1488245817364975626/static',
+    color: '#00B0F4',
+    glow: '0 0 20px #00B0F4'
+  },
+  { 
+    id: 'shadow_strike', 
+    name: 'Frappe de l\'Ombre', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1519015716097888296/static',
+    color: '#1E1F22',
+    glow: '0 0 20px #1E1F22'
+  },
+  { 
+    id: 'sunburst', 
+    name: 'Explosion Solaire', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1377377712028516443/static',
+    color: '#F0B232',
+    glow: '0 0 20px #F0B232'
+  },
+  { 
+    id: 'rose_tinted', 
+    name: 'Rose Tinté', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1519015238345822428/static',
+    color: '#FF6B6B',
+    glow: '0 0 20px #FF6B6B'
+  },
+  { 
+    id: 'mystic_amethyst', 
+    name: 'Améthyste Mystique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1519009618574053668/static',
+    color: '#A855F7',
+    glow: '0 0 20px #A855F7'
+  },
+  { 
+    id: 'celestial_blue', 
+    name: 'Bleu Céleste', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1498424942121848852/static',
+    color: '#3B82F6',
+    glow: '0 0 20px #3B82F6'
+  },
+  { 
+    id: 'arctic_ice', 
+    name: 'Glace Arctique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1447654090921349235/static',
+    color: '#60A5FA',
+    glow: '0 0 20px #60A5FA'
+  },
+  { 
+    id: 'midnight_storm', 
+    name: 'Tempête de Minuit', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1447654091173007401/static',
+    color: '#4C1D95',
+    glow: '0 0 20px #4C1D95'
+  },
+];
 
 export default function ProfileModal({
   profileTarget,
@@ -51,7 +268,14 @@ export default function ProfileModal({
   const [reportBusy, setReportBusy] = useState(false);
   const [note, setNote] = useState('');
   const [isEditingNote, setIsEditingNote] = useState(false);
+  const [isDecorationModalOpen, setIsDecorationModalOpen] = useState(false);
+  const [isNameplateModalOpen, setIsNameplateModalOpen] = useState(false);
+  const [selectedDecoration, setSelectedDecoration] = useState(null);
+  const [selectedNameplate, setSelectedNameplate] = useState(null);
+  const [nameplateImageError, setNameplateImageError] = useState({});
   const initialDraftRef = useRef(profileDraft);
+  const avatarInputRef = useRef(null);
+  const bannerInputRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -69,6 +293,12 @@ export default function ProfileModal({
     setIsEditingNote(false);
     setCommonData({ friends: [], servers: [] });
     setIsCommonDataLoading(!isOwnProfile && !isOfficialProfile);
+    setIsDecorationModalOpen(false);
+    setIsNameplateModalOpen(false);
+    setSelectedDecoration(profileDraft?.avatarDecoration || null);
+    const nameplateId = profileDraft?.nameplate || 'none';
+    setSelectedNameplate(NAMEPLATES.find(n => n.id === nameplateId) || NAMEPLATES[0]);
+    setNameplateImageError({});
     
     if (!isOwnProfile && !isOfficialProfile && profileUserId && getAuthHeaders) {
       const controller = new AbortController();
@@ -124,9 +354,6 @@ export default function ProfileModal({
     setActionMessage(result || successMessage);
   };
   
-  const memberRoles = profileTarget?.roles || [];
-  const canManageRoles = Boolean(serverContext && profileTarget?.canManageRoles);
-  
   const submitReport = async (event) => {
     event.preventDefault();
     if (!reportReason || (reportReason === 'other' && !reportDetails.trim())) return;
@@ -156,31 +383,113 @@ export default function ProfileModal({
 
   const userStatus = profileTarget?.status || 'offline';
   const statusColor = statusColors[userStatus] || statusColors.offline;
+  const statusLabel = {
+    online: 'En ligne',
+    idle: 'Absent',
+    dnd: 'Ne pas déranger',
+    offline: 'Hors ligne',
+  }[userStatus] || 'Hors ligne';
 
-  // Si bloqué, afficher écran avec bouton débloquer
+  const handleAvatarChange = (event) => {
+    // Vérifier que l'événement et event.target existent
+    if (!event || !event.target) {
+      console.error('Événement invalide pour le changement d\'avatar');
+      return;
+    }
+    
+    const file = event.target.files?.[0];
+    if (file && typeof onImageChange === 'function') {
+      // Passer l'événement complet et le type
+      onImageChange(event, 'avatarUrl');
+    } else if (file && !onImageChange) {
+      console.warn('onImageChange n\'est pas défini');
+    }
+    
+    // Réinitialiser l'input pour permettre de sélectionner le même fichier
+    event.target.value = '';
+  };
+  
+  const handleBannerChange = (event) => {
+    // Vérifier que l'événement et event.target existent
+    if (!event || !event.target) {
+      console.error('Événement invalide pour le changement de bannière');
+      return;
+    }
+    
+    const file = event.target.files?.[0];
+    if (file && typeof onImageChange === 'function') {
+      // Passer l'événement complet et le type
+      onImageChange(event, 'bannerUrl');
+    } else if (file && !onImageChange) {
+      console.warn('onImageChange n\'est pas défini');
+    }
+    
+    // Réinitialiser l'input pour permettre de sélectionner le même fichier
+    event.target.value = '';
+  };
+
+  const handleDecorationSelect = (decorationUrl) => {
+    setSelectedDecoration(decorationUrl);
+    setProfileDraft(curr => ({ ...curr, avatarDecoration: decorationUrl }));
+    setIsDecorationModalOpen(false);
+    onMessage('Décoration d\'avatar mise à jour.');
+    onSave(null, { ...profileDraft, avatarDecoration: decorationUrl });
+  };
+
+  const handleNameplateSelect = (nameplate) => {
+    setSelectedNameplate(nameplate);
+    setProfileDraft(curr => ({ ...curr, nameplate: nameplate.id }));
+    setIsNameplateModalOpen(false);
+    onMessage('Plaque nominative mise à jour.');
+    onSave(null, { ...profileDraft, nameplate: nameplate.id });
+    setNameplateImageError(prev => ({ ...prev, [nameplate.id]: false }));
+  };
+
+  const getNameplateStyle = () => {
+    if (!selectedNameplate || selectedNameplate.id === 'none') {
+      return { 
+        color: '#ffffff',
+      };
+    }
+    
+    return {
+      backgroundImage: `url(${selectedNameplate.url})`,
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundSize: 'cover',
+      display: 'inline-block',
+      padding: '8px 16px', // Ajuste selon la taille de l'image
+      minHeight: '40px', // Ajuste selon la hauteur de l'image
+      minWidth: '50px', // Ajuste selon la largeur de l'image
+      borderRadius: '8px',
+      lineHeight: '1.5',
+    };
+  };
+
   if (isBlocked) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/85" onClick={onClose} />
+        <div className="absolute inset-0 bg-black/95" onClick={onClose} />
         <div 
-          className="relative z-10 flex flex-col items-center justify-center rounded-lg p-8"
+          className="relative z-10 flex flex-col items-center justify-center rounded-xl p-8 shadow-2xl"
           style={{
             width: 'min(500px, calc(100vw - 96px))',
             minHeight: '300px',
-            background: 'rgb(0, 0, 0)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: '#000000',
+            border: '1px solid #2a2a2a',
           }}
         >
           <div className="text-center">
-            <Ban size={48} className="mx-auto text-white/30 mb-4" />
-            <h2 className="text-xl font-bold text-white">Utilisateur bloqué</h2>
-            <p className="mt-2 text-sm text-white/50">Vous avez bloqué cet utilisateur.</p>
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
+              <Ban size={40} className="text-red-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-white">Utilisateur bloqué</h2>
+            <p className="mt-2 text-sm text-gray-400">Vous avez bloqué cet utilisateur. Vous ne recevrez plus ses messages.</p>
             
-            {/* Bouton Débloquer */}
             <button 
               type="button" 
               onClick={() => runAction(() => onUnblockUser?.(profileUserId), 'Utilisateur débloqué.')}
-              className="mt-4 rounded-lg bg-emerald-500/20 px-8 py-3 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/30 hover:scale-105 active:scale-95"
+              className="mt-6 rounded-lg bg-white px-8 py-3 text-sm font-semibold text-black transition hover:bg-gray-200"
             >
               <Unlock size={18} className="inline mr-2" />
               Débloquer
@@ -189,7 +498,7 @@ export default function ProfileModal({
             <button 
               type="button" 
               onClick={onClose} 
-              className="mt-3 rounded-lg px-6 py-2.5 text-sm text-white/40 transition hover:text-white/70"
+              className="mt-3 rounded-lg px-6 py-2.5 text-sm text-gray-400 transition hover:text-white"
             >
               Fermer
             </button>
@@ -201,28 +510,45 @@ export default function ProfileModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/85" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/95" onClick={onClose} />
+      
+      {/* Inputs cachés pour les fichiers */}
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleAvatarChange}
+      />
+      <input
+        ref={bannerInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleBannerChange}
+      />
       
       <div 
-        className="relative z-10 flex flex-row overflow-hidden rounded-lg"
+        className="relative z-10 flex flex-row overflow-hidden rounded-[18px] shadow-2xl"
         style={{
           width: 'min(962px, calc(100vw - 96px))',
           height: 'min(800px, calc(100vh - 96px))',
           minHeight: '550px',
-          background: 'rgb(0, 0, 0)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#000000',
+          border: '1px solid #0e0d0d',
         }}
       >
         {/* PARTIE GAUCHE */}
         <main 
           className="flex flex-col overflow-hidden"
           style={{
-            width: 'min(max(300px, calc(45.5vw - 43.68px)), 380px)',
-            minWidth: '300px',
+            width: isOwnProfile || isOfficialProfile ? '100%' : '45%',
+            minWidth: isOwnProfile || isOfficialProfile ? '100%' : '300px',
+            background: '#000000',
           }}
         >
           {/* Bannière */}
-          <div className="relative shrink-0 border-b border-white/10" style={{ height: '140px', width: '100%' }}>
+          <div className="relative shrink-0" style={{ height: '140px', width: '100%' }}>
             {profileDraft.bannerUrl && !bannerFailed ? (
               <img 
                 src={profileDraft.bannerUrl} 
@@ -231,29 +557,49 @@ export default function ProfileModal({
                 onError={() => setBannerFailed(true)} 
               />
             ) : (
-              <div className="h-full w-full" style={{ backgroundColor: 'rgb(0, 0, 0)' }} />
+              <div 
+                className="h-full w-full"
+                style={{ 
+                  background: isOfficialProfile 
+                    ? 'linear-gradient(135deg, #1a1a1a 0%, #333333 100%)'
+                    : 'linear-gradient(135deg, #111111 0%, #222222 100%)' 
+                }}
+              />
+            )}
+            
+            {isOwnProfile && (
+              <button 
+                type="button" 
+                onClick={() => bannerInputRef.current?.click()} 
+                className="absolute bottom-3 right-3 rounded-lg bg-black/70 p-2 text-gray-300 backdrop-blur-sm transition hover:bg-black hover:text-white border border-gray-700 z-20"
+                title="Changer la bannière"
+              >
+                <Camera size={16} />
+              </button>
             )}
             
             <button 
               type="button" 
               onClick={onClose} 
-              className="absolute rounded-full p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
-              style={{ right: '16px', top: '8px' }}
+              className="absolute rounded-full p-2 text-gray-400 transition hover:bg-white/10 hover:text-white z-20"
+              style={{ right: '12px', top: '12px' }}
+              aria-label="Fermer"
             >
               <X size={20} />
             </button>
           </div>
           
-          {/* Avatar */}
-          <div className="relative px-4" style={{ marginTop: '-60px' }}>
-            <div className="relative inline-block">
+          {/* Avatar avec décoration centrée */}
+          <div className="relative px-6" style={{ marginTop: '-60px' }}>
+            <div className="relative" style={{ width: '120px', height: '120px' }}>
+              {/* Avatar de base */}
               <div 
-                className="relative overflow-hidden rounded-full"
+                className="overflow-hidden rounded-full"
                 style={{ 
                   width: '120px', 
                   height: '120px',
-                  border: '6px solid rgb(0, 0, 0)',
-                  backgroundColor: 'rgb(0, 0, 0)',
+                  border: '6px solid #000000',
+                  backgroundColor: '#111111',
                 }}
               >
                 {profileDraft.avatarUrl && !avatarFailed ? (
@@ -265,160 +611,250 @@ export default function ProfileModal({
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
-                    <User size={48} className="text-white/40" />
+                    <User size={48} className="text-gray-600" />
                   </div>
                 )}
               </div>
-              <div 
-                className="absolute rounded-full border-2 border-black"
-                style={{ 
-                  bottom: '4px', 
-                  right: '4px', 
-                  width: '28px', 
-                  height: '28px',
-                  backgroundColor: statusColor,
-                }}
-              />
+              
+              {/* Décoration d'avatar - CENTRÉE SUR L'AVATAR */}
+              {selectedDecoration && (
+                <img 
+                  src={selectedDecoration} 
+                  alt="Décoration" 
+                  style={{ 
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -52%) scale(1.5)',
+                    width: '85px',
+                    height: '90px',
+                    zIndex: 10,
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
+              
+              {/* Bouton caméra */}
+              {isOwnProfile && (
+                <button 
+                  type="button" 
+                  onClick={() => avatarInputRef.current?.click()} 
+                  className="absolute rounded-full bg-black/70 p-2 text-gray-300 backdrop-blur-sm transition hover:bg-black hover:text-white border border-gray-700 z-20"
+                  style={{ bottom: '0px', right: '0px' }}
+                  title="Changer l'avatar"
+                >
+                  <Camera size={16} />
+                </button>
+              )}
             </div>
           </div>
           
           {/* Corps du profil */}
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
-            {/* Nom + bouton Plus (TOUJOURS présent) */}
-            <div className="mt-2 flex items-start justify-between">
-              <div>
-                <button 
-                  type="button" 
-                  disabled={!isOwnProfile} 
-                  onClick={() => setEditingField('displayName')} 
-                  className="text-left text-2xl font-bold text-white disabled:cursor-default"
-                >
-                  {displayName}
-                </button>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-white/60">@{username}</span>
-                  <ProfileBadges badges={profileTarget?.badges} compact />
-                </div>
-              </div>
-              
-              {/* UN SEUL bouton Plus - TOUJOURS présent pour les autres */}
-              {!isOwnProfile && !isOfficialProfile && (
-                <div className="relative">
-                  <button 
-                    type="button" 
-                    onClick={() => setIsActionMenuOpen((open) => !open)} 
-                    className="rounded-full p-1.5 text-white/40 transition hover:bg-white/10 hover:text-white"
-                    aria-label="Plus d'actions"
-                  >
-                    <MoreHorizontal size={20} />
-                  </button>
-                  
-                  {isActionMenuOpen && (
-                    <div 
-                      className="absolute right-0 z-20 mt-1 overflow-hidden rounded-lg p-1 shadow-xl"
-                      style={{ 
-                        top: '100%',
-                        background: 'rgb(17, 18, 20)',
-                        width: '220px',
-                      }}
-                    >
-                      {/* ✅ DÉBLOQUER - TOUJOURS AFFICHÉ (utile si isBlocked mal détecté) */}
-                      <button 
-                        type="button" 
-                        onClick={() => runAction(() => onUnblockUser?.(profileUserId), 'Utilisateur débloqué.')}
-                        className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-white hover:bg-[#248046]"
-                      >
-                        <Unlock size={16} /> Débloquer
-                      </button>
-                      
-                      <div className="my-1 border-t border-white/10" />
-                      
-                      {/* Ajouter en ami - seulement si pas ami */}
-                      {!isFriend && (
-                        <button 
-                          type="button" 
-                          onClick={() => runAction(() => onAddFriend?.(profileTarget), 'Demande envoyée.')} 
-                          className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-white hover:bg-[#248046]"
-                        >
-                          <UserPlus size={16} /> Ajouter en ami
-                        </button>
-                      )}
-                      
-                      {/* Supprimer des amis - seulement si ami */}
-                      {isFriend && (
-                        <button 
-                          type="button" 
-                          onClick={() => runAction(() => onRemoveFriend?.(profileUserId), 'Ami supprimé.')} 
-                          className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-white hover:bg-[#f23f43] hover:text-white"
-                        >
-                          <UserMinus size={16} /> Supprimer des amis
-                        </button>
-                      )}
-                      
-                      {/* Bloquer - seulement si pas déjà bloqué */}
-                      {!isBlocked && (
-                        <button 
-                          type="button" 
-                          onClick={() => runAction(() => onBlockUser?.(profileUserId), 'Utilisateur bloqué.')} 
-                          className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-[#f23f43] hover:bg-[#f23f43] hover:text-white"
-                        >
-                          <Ban size={16} /> Bloquer
-                        </button>
-                      )}
-                      
-                      <button 
-                        type="button" 
-                        onClick={() => { setIsActionMenuOpen(false); setIsReportOpen(true); }} 
-                        className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-white hover:bg-[#4e5058]"
-                      >
-                        <Flag size={16} /> Signaler
-                      </button>
+          <div className="flex-1 overflow-y-auto px-6 pb-6 custom-scrollbar" style={{ marginTop: '20px' }}>
+            {/* Nom + badges */}
+            <div>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  {isOwnProfile && editingField === 'displayName' ? (
+  <input
+    autoFocus
+    value={profileDraft.displayName}
+    onChange={(event) => setProfileDraft((current) => ({ ...current, displayName: event.target.value }))}
+    onKeyDown={(event) => { 
+      if (event.key === 'Escape') cancelField(); 
+      if (event.key === 'Enter') saveField('displayName'); 
+    }} 
+    onBlur={() => saveField('displayName')}
+    className="w-full bg-transparent text-2xl font-bold text-white outline-none border-b border-gray-700 focus:border-white"
+  />
+) : (
+  <div className="relative inline-block w-full">
+<button 
+  type="button" 
+  disabled={!isOwnProfile} 
+  onClick={() => isOwnProfile && setEditingField('displayName')} 
+  className="block w-full truncate text-left text-2xl font-bold disabled:cursor-default relative"
+  title={displayName}
+>
+  {(() => {
+    const targetNameplateId = profileTarget?.nameplate || 'none';
+    const targetNameplate = NAMEPLATES.find(n => n.id === targetNameplateId) || NAMEPLATES[0];
+    const hasNameplate = targetNameplateId !== 'none' && targetNameplate?.url;
+    
+    if (hasNameplate) {
+      return (
+        <span 
+          className="inline-flex items-center px-4 py-2 rounded-lg text-left"
+          style={{
+            backgroundImage: `url(${targetNameplate.url})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: targetNameplate.color,
+            textShadow: targetNameplate.glow !== 'none' ? targetNameplate.glow : undefined,
+            minHeight: '50px',
+            width: '80%', // Largeur automatique selon le contenu
+            maxWidth: '100%', // Limite la largeur à 80% du conteneur
+            paddingLeft: '24px', // Décale le pseudo vers la droite
+          }}
+        >
+          {displayName}
+        </span>
+      );
+    } else {
+      return (
+        <span style={{ color: '#ffffff' }}>
+          {displayName}
+        </span>
+      );
+    }
+  })()}
+  {isOwnProfile && <Pencil size={14} className="inline ml-2 text-gray-500" />}
+</button>
                     </div>
                   )}
                 </div>
-              )}
+                
+                {!isOwnProfile && !isOfficialProfile && (
+                  <div className="relative shrink-0">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsActionMenuOpen((open) => !open)} 
+                      className="rounded-full p-2 text-gray-500 transition hover:bg-white/10 hover:text-white"
+                      aria-label="Plus d'actions"
+                    >
+                      <MoreHorizontal size={20} />
+                    </button>
+                    
+                    {isActionMenuOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-10" 
+                          onClick={() => setIsActionMenuOpen(false)}
+                        />
+                        <div 
+                          className="absolute right-0 z-20 mt-1 overflow-hidden rounded-lg p-1 shadow-xl"
+                          style={{ 
+                            top: '100%',
+                            background: '#111111',
+                            width: '220px',
+                            border: '1px solid #2a2a2a',
+                          }}
+                        >
+                          {!isFriend && (
+                            <button 
+                              type="button" 
+                              onClick={() => runAction(() => onAddFriend?.(profileTarget), 'Demande envoyée.')} 
+                              className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                            >
+                              <UserPlus size={16} /> Ajouter en ami
+                            </button>
+                          )}
+                          
+                          {isFriend && (
+                            <button 
+                              type="button" 
+                              onClick={() => runAction(() => onRemoveFriend?.(profileUserId), 'Ami supprimé.')} 
+                              className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10"
+                            >
+                              <UserMinus size={16} /> Supprimer des amis
+                            </button>
+                          )}
+                          
+                          <button 
+                            type="button" 
+                            onClick={() => runAction(() => onBlockUser?.(profileUserId), 'Utilisateur bloqué.')} 
+                            className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10"
+                          >
+                            <Ban size={16} /> Bloquer
+                          </button>
+                          
+                          <button 
+                            type="button" 
+                            onClick={() => { setIsActionMenuOpen(false); setIsReportOpen(true); }} 
+                            className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                          >
+                            <Flag size={16} /> Signaler
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             
             {/* Boutons principaux */}
-            <div className="mt-3 flex items-center gap-2">
-              <button 
-                type="button" 
-                onClick={() => isOwnProfile ? onSave(null, profileDraft) : onSendMessage(profileTarget?.id || profileTarget?._id)} 
-                className="flex-1 rounded-md px-4 py-2 text-sm font-medium text-white transition hover:opacity-80"
-                style={{ backgroundColor: 'rgb(85, 85, 85)' }}
-              >
-                <MessageCircle size={16} className="inline mr-2" />
-                {isOwnProfile ? 'Modifier' : 'Envoyer un message'}
-              </button>
-              
-              {/* Bouton AJOUTER EN AMI - UNIQUEMENT si on n'est PAS ami */}
-              {!isOwnProfile && !isOfficialProfile && !isFriend && !isBlocked && (
-                <button 
-                  type="button" 
-                  onClick={() => runAction(() => onAddFriend?.(profileTarget), 'Demande envoyée.')} 
-                  className="rounded-md bg-white/10 px-4 py-2 text-sm font-medium text-white/60 transition hover:bg-white/20 hover:text-white"
-                >
-                  <UserPlus size={18} />
-                </button>
-              )}
-              
-              {/* Bouton AMI - UNIQUEMENT si on est ami */}
-              {!isOwnProfile && !isOfficialProfile && isFriend && !isBlocked && (
-                <button 
-                  type="button" 
-                  onClick={() => runAction(() => onRemoveFriend?.(profileUserId), 'Ami supprimé.')} 
-                  className="rounded-md bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/30"
-                >
-                  <Check size={16} className="inline mr-1" />
-                  Ami
-                </button>
-              )}
+            <div className="mt-6 flex items-center gap-2">
+              {!isOwnProfile && !isOfficialProfile ? (
+                <>
+                  <button 
+                    type="button" 
+                    onClick={() => onSendMessage(profileTarget?.id || profileTarget?._id)} 
+                    className="flex-1 rounded-lg px-4 py-3 text-sm font-semibold text-black transition hover:bg-gray-200"
+                    style={{ backgroundColor: '#ffffff' }}
+                  >
+                    <MessageCircle size={16} className="inline mr-2" />
+                    Envoyer un message
+                  </button>
+                  
+                  {!isFriend ? (
+                    <button 
+                      type="button" 
+                      onClick={() => runAction(() => onAddFriend?.(profileTarget), 'Demande envoyée.')} 
+                      className="rounded-lg bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/20 border border-gray-700"
+                      title="Ajouter en ami"
+                    >
+                      <UserPlus size={18} />
+                    </button>
+                  ) : (
+                    <button 
+                      type="button" 
+                      onClick={() => runAction(() => onRemoveFriend?.(profileUserId), 'Ami supprimé.')} 
+                      className="rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-gray-200"
+                      title="Retirer des amis"
+                    >
+                      <Check size={16} className="inline mr-1" />
+                      Ami
+                    </button>
+                  )}
+                </>
+              ) : isOwnProfile ? (
+                <>
+                  <button 
+                    type="button" 
+                    onClick={() => onSave(null, profileDraft)} 
+                    className="flex-1 rounded-lg px-4 py-3 text-sm font-semibold text-black transition hover:bg-gray-200"
+                    style={{ backgroundColor: '#ffffff' }}
+                  >
+                    <Pencil size={16} className="inline mr-2" />
+                    Modifier le profil
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsDecorationModalOpen(true)} 
+                    className="rounded-lg bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/20 border border-gray-700"
+                    title="Ajouter une décoration"
+                  >
+                    <Sparkles size={18} />
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsNameplateModalOpen(true)} 
+                    className="rounded-lg bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/20 border border-gray-700"
+                    title="Changer la plaque nominative"
+                  >
+                    <Type size={18} />
+                  </button>
+                </>
+              ) : null}
             </div>
             
             {/* Bio */}
             {!isOfficialProfile && (
-              <section className="mt-5">
-                <h2 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-white/40">À propos de moi</h2>
+              <section className="mt-8">
                 {isOwnProfile && editingField === 'bio' ? (
                   <textarea 
                     autoFocus 
@@ -429,53 +865,67 @@ export default function ProfileModal({
                       if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) saveField('bio'); 
                     }} 
                     onBlur={() => saveField('bio')} 
-                    rows={3} 
-                    className="w-full resize-none bg-transparent text-sm text-white outline-none"
+                    rows={4} 
+                    className="w-full resize-none rounded-lg bg-black p-3 text-sm text-white outline-none border border-gray-700 focus:border-white"
+                    placeholder="Parlez de vous..."
                   />
                 ) : (
-                  <div className="text-sm text-white/70 whitespace-pre-wrap">
+                  <button
+                    type="button"
+                    onClick={() => isOwnProfile && setEditingField('bio')}
+                    className="w-full text-left text-sm text-gray-300 whitespace-pre-wrap rounded-lg p-3 hover:bg-white/5 transition"
+                  >
                     {profileDraft.bio || 'Aucune bio pour le moment.'}
-                  </div>
+                    {isOwnProfile && <Pencil size={12} className="inline ml-2 text-gray-600" />}
+                  </button>
                 )}
               </section>
             )}
             
-            {/* Membre depuis */}
-            <section className="mt-4">
-              <h2 className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-white/40">Membre depuis</h2>
-              <div className="text-sm text-white/70">
-                {isOfficialProfile ? 'Toujours' : formatDate(profileTarget?.createdAt) || 'Indisponible'}
+            {/* Informations */}
+            <section className="mt-8 space-y-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Informations
+              </h2>
+              
+              <div className="flex items-center gap-3 text-sm text-gray-400 py-2">
+                <Calendar size={16} className="text-gray-600" />
+                {isOfficialProfile ? 'Membre depuis toujours' : `Membre depuis le ${formatDate(profileTarget?.createdAt) || 'Indisponible'}`}
               </div>
             </section>
             
             {/* Note */}
             {!isOwnProfile && !isOfficialProfile && (
-              <section className="mt-4">
-                <h2 className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-white/40">Note (seulement visible par toi)</h2>
+              <section className="mt-8">
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Note personnelle
+                </h2>
                 {isEditingNote ? (
                   <textarea 
                     autoFocus 
                     value={note} 
                     onChange={(event) => setNote(event.target.value)} 
                     onBlur={() => setIsEditingNote(false)} 
-                    rows={2} 
-                    className="w-full resize-none bg-transparent text-sm text-white outline-none"
-                    placeholder="Clique pour ajouter une note"
+                    rows={3} 
+                    className="w-full resize-none rounded-lg bg-black p-3 text-sm text-white outline-none border border-gray-700 focus:border-white"
+                    placeholder="Ajouter une note privée..."
                   />
                 ) : (
                   <button 
                     type="button" 
                     onClick={() => setIsEditingNote(true)} 
-                    className="w-full text-left text-sm text-white/40 hover:text-white/70 transition"
+                    className="w-full rounded-lg bg-black p-3 text-left text-sm text-gray-500 transition hover:bg-white/5 hover:text-gray-300 border border-gray-800"
                   >
-                    {note || 'Clique pour ajouter une note'}
+                    {note || 'Cliquez pour ajouter une note'}
                   </button>
                 )}
               </section>
             )}
             
             {actionMessage && (
-              <p className="mt-3 text-sm text-white/60">{actionMessage}</p>
+              <p className="mt-6 rounded-lg bg-white/5 p-3 text-sm text-gray-300 border border-gray-800">
+                {actionMessage}
+              </p>
             )}
           </div>
         </main>
@@ -483,69 +933,125 @@ export default function ProfileModal({
         {/* PARTIE DROITE */}
         {!isOwnProfile && !isOfficialProfile && !isBlocked && (
           <div 
-            className="flex flex-col border-l border-white/10"
-            style={{ width: '340px', minWidth: '280px' }}
+            className="flex flex-col"
+            style={{ 
+              width: '55%', 
+              minWidth: '280px',
+              background: 'black',
+              borderLeft: '1px solid #0a0a0a',
+            }}
           >
             {/* Tabs */}
-            <div className="flex border-b border-white/10 px-4 py-3 gap-6">
+            <div className="flex border-b border-gray-800 px-6 pt-4 gap-8">
               <button 
                 type="button" 
                 onClick={() => setActiveTab('friends')} 
-                className={`text-sm font-medium transition ${activeTab === 'friends' ? 'border-b-2 border-white text-white' : 'text-white/40 hover:text-white/70'}`}
-                style={{ paddingBottom: '10px' }}
+                className={`relative text-sm font-medium transition ${
+                  activeTab === 'friends' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                }`}
+                style={{ paddingBottom: '12px' }}
               >
-                {commonData.friends.length > 0 ? `${commonData.friends.length} amis en commun` : 'Amis en commun'}
+                Amis en commun
+                {commonData.friends.length > 0 && (
+                  <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-xs">
+                    {commonData.friends.length}
+                  </span>
+                )}
+                {activeTab === 'friends' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white" />
+                )}
               </button>
               <button 
                 type="button" 
                 onClick={() => setActiveTab('servers')} 
-                className={`text-sm font-medium transition ${activeTab === 'servers' ? 'border-b-2 border-white text-white' : 'text-white/40 hover:text-white/70'}`}
-                style={{ paddingBottom: '10px' }}
+                className={`relative text-sm font-medium transition ${
+                  activeTab === 'servers' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                }`}
+                style={{ paddingBottom: '12px' }}
               >
-                {commonServers.length > 0 ? `${commonServers.length} serveurs en commun` : 'Serveurs en commun'}
+                Serveurs en commun
+                {commonServers.length > 0 && (
+                  <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-xs">
+                    {commonServers.length}
+                  </span>
+                )}
+                {activeTab === 'servers' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white" />
+                )}
               </button>
             </div>
             
             {/* Contenu */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
               {activeTab === 'friends' ? (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {isCommonDataLoading ? (
-                    <p className="py-4 text-sm text-white/40">Chargement...</p>
+                    <div className="flex justify-center py-12">
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-700 border-t-white" />
+                    </div>
                   ) : commonData.friends.length ? (
                     commonData.friends.map((friend) => (
-                      <div key={friend.id || friend._id} className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5 transition">
-                        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white/10">
-                          {friend.avatarUrl ? <img src={friend.avatarUrl} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-sm text-white/40">{friend.displayName?.charAt(0) || '?'}</div>}
+                      <div 
+                        key={friend.id || friend._id} 
+                        className="flex items-center gap-3 rounded-lg px-3 py-3 transition hover:bg-white/5"
+                      >
+                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-gray-800">
+                          {friend.avatarUrl ? (
+                            <img src={friend.avatarUrl} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-sm font-medium text-gray-400">
+                              {friend.displayName?.charAt(0) || '?'}
+                            </div>
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm text-white truncate">{friend.displayName || friend.username}</p>
-                          <p className="text-xs text-white/40">@{friend.username}</p>
+                          <p className="truncate text-sm font-medium text-white">{friend.displayName || friend.username}</p>
+                          <p className="truncate text-xs text-gray-500">@{friend.username}</p>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <p className="py-6 text-center text-sm text-white/40">Aucun ami en commun</p>
+                    <div className="py-12 text-center">
+                      <Users size={32} className="mx-auto mb-3 text-gray-700" />
+                      <p className="text-sm text-gray-500">Aucun ami en commun</p>
+                    </div>
                   )}
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {isCommonDataLoading && !commonServers.length ? (
-                    <p className="py-4 text-sm text-white/40">Chargement...</p>
+                    <div className="flex justify-center py-12">
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-700 border-t-white" />
+                    </div>
                   ) : commonServers.length ? (
                     commonServers.map((server) => (
-                      <div key={server.id || server._id} className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5 transition">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/10">
-                          {server.avatarUrl ? <img src={server.avatarUrl} alt="" className="h-full w-full object-cover" /> : <span className="text-sm font-medium text-white/40">{server.name?.charAt(0) || 'S'}</span>}
+                      <div 
+                        key={server.id || server._id} 
+                        className="flex items-center gap-3 rounded-lg px-3 py-3 transition hover:bg-white/5"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-800">
+                          {server.avatarUrl ? (
+                            <img src={server.avatarUrl} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-sm font-medium text-gray-400">
+                              {server.name?.charAt(0) || 'S'}
+                            </span>
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm text-white truncate">{server.name}</p>
-                          <p className="text-xs text-white/40">{server.memberCount} membre(s)</p>
+                          <p className="truncate text-sm font-medium text-white">{server.name}</p>
+                          <p className="truncate text-xs text-gray-500">
+                            <Users size={12} className="inline mr-1" />
+                            {server.memberCount} membre(s)
+                          </p>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <p className="py-6 text-center text-sm text-white/40">Aucun serveur en commun</p>
+                    <div className="py-12 text-center">
+                      <Server size={32} className="mx-auto mb-3 text-gray-700" />
+                      <p className="text-sm text-gray-500">Aucun serveur en commun</p>
+                    </div>
                   )}
                 </div>
               )}
@@ -554,16 +1060,186 @@ export default function ProfileModal({
         )}
       </div>
       
+      {/* MODAL DE DÉCORATIONS */}
+      {isDecorationModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/90" onClick={() => setIsDecorationModalOpen(false)} />
+          <div 
+            className="relative z-10 w-full max-w-3xl rounded-xl shadow-2xl flex flex-col"
+            style={{ 
+              background: '#0a0a0a',
+              border: '1px solid #2a2a2a',
+              maxHeight: '80vh',
+            }}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+              <h2 className="text-xl font-bold text-white">Choisir une décoration</h2>
+              <button 
+                type="button" 
+                onClick={() => setIsDecorationModalOpen(false)} 
+                className="rounded-full p-1 text-gray-500 hover:bg-white/10 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              <div className="flex flex-col gap-8">
+                {AVATAR_DECORATIONS.map((category) => (
+                  <div key={category.id}>
+                    {/* Bannière de catégorie */}
+                    <div className="relative mb-4 flex h-28 items-center justify-center overflow-hidden rounded-2xl bg-black">
+                      <img 
+                        src={category.banner} 
+                        alt={category.name} 
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="relative flex flex-col items-center justify-center p-4">
+                        <img 
+                          src={category.bannerText} 
+                          alt={category.name} 
+                          className="mb-2"
+                          style={{ height: '48px', width: 'auto' }}
+                          loading="lazy"
+                        />
+                        <p className="text-center text-sm font-medium text-white">
+                          {category.description}
+                        </p>
+                        {category.tag && (
+                          <p className="absolute top-2 right-2 bg-white px-2 py-0.5 rounded-full font-semibold text-black text-xs">
+                            {category.tag}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Grille de décorations */}
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-3">
+                      {category.decorations.map((decoration) => (
+                        <button
+                          key={decoration.id}
+                          type="button"
+                          onClick={() => handleDecorationSelect(decoration.url)}
+                          className={`relative aspect-square rounded-lg border-2 transition hover:scale-105 ${
+                            selectedDecoration === decoration.url 
+                              ? 'border-white bg-white/10' 
+                              : 'border-gray-800 bg-black hover:border-gray-600'
+                          }`}
+                        >
+                          <img 
+                            src={decoration.url} 
+                            alt={decoration.id} 
+                            className="h-full w-full object-contain p-2 pointer-events-none"
+                            loading="lazy"
+                          />
+                          {selectedDecoration === decoration.url && (
+                            <div className="absolute top-1 right-1 rounded-full bg-white p-0.5">
+                              <Check size={12} className="text-black" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* MODAL DE PLAQUES NOMINATIVES */}
+      {isNameplateModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/90" onClick={() => setIsNameplateModalOpen(false)} />
+          <div 
+            className="relative z-10 w-full max-w-md rounded-xl shadow-2xl flex flex-col"
+            style={{ 
+              background: '#0a0a0a',
+              border: '1px solid #2a2a2a',
+              maxHeight: '80vh',
+            }}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+              <h2 className="text-xl font-bold text-white">Choisir une plaque nominative</h2>
+              <button 
+                type="button" 
+                onClick={() => setIsNameplateModalOpen(false)} 
+                className="rounded-full p-1 text-gray-500 hover:bg-white/10 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <div className="grid grid-cols-2 gap-3">
+                {NAMEPLATES.map((nameplate) => (
+                  <button
+                    key={nameplate.id}
+                    type="button"
+                    onClick={() => handleNameplateSelect(nameplate)}
+                    className={`rounded-lg border-2 p-4 transition hover:scale-105 relative overflow-hidden ${
+                      selectedNameplate?.id === nameplate.id 
+                        ? 'border-white bg-white/10' 
+                        : 'border-gray-800 bg-black hover:border-gray-600'
+                    }`}
+                  >
+                    {nameplate.url && !nameplateImageError[nameplate.id] && (
+                      <div className="absolute inset-0 opacity-20">
+                        <img 
+                          src={nameplate.url} 
+                          alt=""
+                          className="h-full w-full object-cover"
+                          onError={() => setNameplateImageError(prev => ({ ...prev, [nameplate.id]: true }))}
+                        />
+                      </div>
+                    )}
+                    <div className="relative z-10">
+                      <div 
+                        className="text-lg font-bold mb-2"
+                        style={{
+                          textShadow: nameplate.glow !== 'none' ? nameplate.glow : undefined,
+                        }}
+                      >
+                        {displayName}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {nameplate.name}
+                      </div>
+                      {selectedNameplate?.id === nameplate.id && (
+                        <div className="mt-2 inline-flex items-center gap-1 text-xs text-white">
+                          <Check size={12} /> Sélectionné
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Report modal */}
       {isReportOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setIsReportOpen(false)} />
-          <form onSubmit={submitReport} className="relative z-10 w-full max-w-md rounded-lg p-5 shadow-2xl" style={{ background: 'rgb(49, 51, 56)' }}>
+          <div className="absolute inset-0 bg-black/90" onClick={() => setIsReportOpen(false)} />
+          <form 
+            onSubmit={submitReport} 
+            className="relative z-10 w-full max-w-md rounded-xl p-6 shadow-2xl"
+            style={{ 
+              background: '#0a0a0a',
+              border: '1px solid #2a2a2a',
+            }}
+          >
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">Signaler</h2>
-              <button type="button" onClick={() => setIsReportOpen(false)} className="text-white/40 hover:text-white"><X size={20} /></button>
+              <h2 className="text-xl font-bold text-white">Signaler un utilisateur</h2>
+              <button type="button" onClick={() => setIsReportOpen(false)} className="rounded-full p-1 text-gray-500 hover:bg-white/10 hover:text-white">
+                <X size={20} />
+              </button>
             </div>
-            <p className="mt-2 text-sm text-white/60">Une raison est obligatoire.</p>
+            <p className="mt-2 text-sm text-gray-400">Veuillez sélectionner une raison pour ce signalement.</p>
             <div className="mt-4 space-y-1">
               {[
                 ['harassment', 'Harcèlement'],
@@ -576,19 +1252,48 @@ export default function ProfileModal({
                 ['abuse', 'Comportement abusif'],
                 ['other', 'Autre']
               ].map(([value, label]) => (
-                <label key={value} className="flex items-center gap-3 rounded px-2 py-2 text-sm text-white hover:bg-white/5">
-                  <input type="radio" name="report-reason" value={value} checked={reportReason === value} onChange={(event) => setReportReason(event.target.value)} required />
-                  {label}
+                <label 
+                  key={value} 
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 transition ${
+                    reportReason === value ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <input 
+                    type="radio" 
+                    name="report-reason" 
+                    value={value} 
+                    checked={reportReason === value} 
+                    onChange={(event) => setReportReason(event.target.value)} 
+                    className="mt-0.5"
+                    required 
+                  />
+                  <span className="text-sm text-white">{label}</span>
                 </label>
               ))}
             </div>
             {reportReason === 'other' && (
-              <textarea required value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} placeholder="Décrivez la raison..." rows={3} className="mt-3 w-full rounded border border-white/10 bg-black/20 p-3 text-sm text-white outline-none" />
+              <textarea 
+                required 
+                value={reportDetails} 
+                onChange={(event) => setReportDetails(event.target.value)} 
+                placeholder="Décrivez la raison du signalement..." 
+                rows={3} 
+                className="mt-3 w-full rounded-lg bg-black p-3 text-sm text-white outline-none border border-gray-700 focus:border-white"
+              />
             )}
-            <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={() => setIsReportOpen(false)} className="rounded px-3 py-2 text-sm text-white/60 hover:underline">Annuler</button>
-              <button disabled={reportBusy || !reportReason || (reportReason === 'other' && !reportDetails.trim())} className="rounded bg-[#f23f43] px-3 py-2 text-sm font-medium text-white disabled:opacity-40">
-                {reportBusy ? 'Envoi...' : 'Envoyer'}
+            <div className="mt-6 flex justify-end gap-3">
+              <button 
+                type="button" 
+                onClick={() => setIsReportOpen(false)} 
+                className="rounded-lg px-4 py-2 text-sm text-gray-400 hover:text-white transition"
+              >
+                Annuler
+              </button>
+              <button 
+                disabled={reportBusy || !reportReason || (reportReason === 'other' && !reportDetails.trim())} 
+                className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-gray-200 disabled:opacity-40"
+              >
+                {reportBusy ? 'Envoi...' : 'Envoyer le signalement'}
               </button>
             </div>
           </form>

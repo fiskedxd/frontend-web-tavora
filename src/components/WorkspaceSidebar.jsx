@@ -1,9 +1,190 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, ChevronDown, Copy, Hash, Home, Link2, MessageSquare, Plus, Search, Settings2, User, UserPlus, Users, Volume2 } from 'lucide-react';
 
+// Plaques nominatives - URLs Discord officielles avec noms personnalisés
+const NAMEPLATES = [
+  { 
+    id: 'none', 
+    name: 'Aucune', 
+    url: null,
+    color: '#ffffff',
+    glow: 'none'
+  },
+  { 
+    id: 'galactic_blue', 
+    name: 'Bleu Galactique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1495806574269038713/static',
+    color: '#5865F2',
+    glow: '0 0 20px #5865F2'
+  },
+  { 
+    id: 'emerald_glow', 
+    name: 'Émeraude Lumineuse', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1495807265175900180/static',
+    color: '#57F287',
+    glow: '0 0 20px #57F287'
+  },
+  { 
+    id: 'crimson_fire', 
+    name: 'Feu Cramoisi', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1538991887497695252/static',
+    color: '#ED4245',
+    glow: '0 0 20px #ED4245'
+  },
+  { 
+    id: 'golden_radiance', 
+    name: 'Rayonnement Doré', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1531411317477478654/static',
+    color: '#FEE75C',
+    glow: '0 0 20px #FEE75C'
+  },
+  { 
+    id: 'neon_pulse', 
+    name: 'Pulsation Néon', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1488244924066566185/static',
+    color: '#EB459E',
+    glow: '0 0 20px #EB459E'
+  },
+  { 
+    id: 'ocean_depth', 
+    name: 'Profondeur Océanique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1488245817364975626/static',
+    color: '#00B0F4',
+    glow: '0 0 20px #00B0F4'
+  },
+  { 
+    id: 'shadow_strike', 
+    name: 'Frappe de l\'Ombre', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1519015716097888296/static',
+    color: '#1E1F22',
+    glow: '0 0 20px #1E1F22'
+  },
+  { 
+    id: 'sunburst', 
+    name: 'Explosion Solaire', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1377377712028516443/static',
+    color: '#F0B232',
+    glow: '0 0 20px #F0B232'
+  },
+  { 
+    id: 'rose_tinted', 
+    name: 'Rose Tinté', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1519015238345822428/static',
+    color: '#FF6B6B',
+    glow: '0 0 20px #FF6B6B'
+  },
+  { 
+    id: 'mystic_amethyst', 
+    name: 'Améthyste Mystique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1519009618574053668/static',
+    color: '#A855F7',
+    glow: '0 0 20px #A855F7'
+  },
+  { 
+    id: 'celestial_blue', 
+    name: 'Bleu Céleste', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1498424942121848852/static',
+    color: '#3B82F6',
+    glow: '0 0 20px #3B82F6'
+  },
+  { 
+    id: 'arctic_ice', 
+    name: 'Glace Arctique', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1447654090921349235/static',
+    color: '#60A5FA',
+    glow: '0 0 20px #60A5FA'
+  },
+  { 
+    id: 'midnight_storm', 
+    name: 'Tempête de Minuit', 
+    url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/1447654091173007401/static',
+    color: '#4C1D95',
+    glow: '0 0 20px #4C1D95'
+  },
+];
+
+// Composant Avatar avec décoration
+const AvatarWithDecoration = ({ user, size = 'h-9 w-9', className = '' }) => {
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const decoration = user?.avatarDecoration || null;
+  const avatarUrl = user?.avatarUrl || '';
+  const sizePx = size === 'h-9 w-9' ? 36 : size === 'h-7 w-7' ? 28 : 40;
+  
+  return (
+    <div className={`relative ${className}`} style={{ width: sizePx, height: sizePx }}>
+      <div 
+        className={`${size} flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[#16161d] text-xs font-semibold text-white/50`}
+        style={{ 
+          width: sizePx, 
+          height: sizePx,
+        }}
+      >
+        {avatarUrl && !avatarFailed ? (
+          <img 
+            src={avatarUrl} 
+            alt={`Avatar de ${user?.displayName || user?.username || 'Utilisateur'}`} 
+            className="h-full w-full object-cover" 
+            onError={() => setAvatarFailed(true)} 
+          />
+        ) : (
+          <User size={sizePx * 0.4} className="text-white/20" />
+        )}
+      </div>
+      
+      {decoration && (
+        <img 
+          src={decoration} 
+          alt="Décoration" 
+          style={{ 
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -52%) scale(1.5)',
+            width: sizePx * 0.7,
+            height: sizePx * 0.75,
+            zIndex: 10,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Composant Nom avec plaque nominative
+const DisplayNameWithNameplate = ({ user, className = '' }) => {
+  const nameplateId = user?.nameplate || 'none';
+  const nameplate = NAMEPLATES.find(n => n.id === nameplateId) || NAMEPLATES[0];
+  const displayName = user?.displayName || user?.username || 'Utilisateur';
+  
+  if (nameplateId === 'none' || !nameplate || !nameplate.url) {
+    return <span className={className}>{displayName}</span>;
+  }
+  
+  return (
+    <span 
+      className={className}
+      style={{
+        backgroundImage: `url(${nameplate.url})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        padding: '4px 12px',
+        borderRadius: '6px',
+        display: 'inline-block',
+        color: nameplate.color,
+        textShadow: nameplate.glow !== 'none' ? nameplate.glow : undefined,
+      }}
+    >
+      {displayName}
+    </span>
+  );
+};
+
 const ServerIcon = ({ server }) => {
   const [failed, setFailed] = React.useState(false);
-  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now()); const imageUrl = server?.avatarUrl ? `${server.avatarUrl}?t=${avatarTimestamp}` : "";
+  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
+  const imageUrl = server?.avatarUrl ? `${server.avatarUrl}?t=${avatarTimestamp}` : "";
 
   return imageUrl && !failed ? (
     <img src={imageUrl} alt="" className="h-full w-full rounded-xl object-cover" onError={() => setFailed(true)} />
@@ -12,6 +193,7 @@ const ServerIcon = ({ server }) => {
   );
 };
 
+// Composant Avatar simple (pour la compatibilité)
 const Avatar = ({ person, size = 'h-9 w-9' }) => (
   <div className={`${size} flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[#16161d] text-xs font-semibold text-white/50`}>
     {person?.avatarUrl ? <img src={person.avatarUrl} alt="" className="h-full w-full object-cover" /> : <User size={16} />}
@@ -48,7 +230,7 @@ export default function WorkspaceSidebar({
   onFriendRequestDecision,
   className = '',
 }) {
-  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now()); // 👈 AJOUTE CETTE LIGNE
+  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
   const [isServerMenuOpen, setIsServerMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [bannerFailed, setBannerFailed] = useState(false);
@@ -185,8 +367,8 @@ export default function WorkspaceSidebar({
               {filteredFriends.map((friend) => (
                 <div key={friend.id} className="group flex items-center gap-2 rounded-lg px-2 py-2 transition hover:bg-white/[0.045]">
                   <button type="button" onClick={() => onOpenDirectMessage(friend.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                    <Avatar person={friend} />
-                    <span className="truncate text-sm text-white/60 group-hover:text-white">{friend.displayName || friend.username}</span>
+                    <AvatarWithDecoration user={friend} size="h-9 w-9" />
+                    <DisplayNameWithNameplate user={friend} className="truncate text-sm text-white/60 group-hover:text-white" />
                   </button>
                   <button type="button" onClick={() => onOpenProfile(friend, false)} className="text-white/20 opacity-0 transition group-hover:opacity-100 hover:text-white"><Users size={14} /></button>
                 </div>
@@ -196,27 +378,97 @@ export default function WorkspaceSidebar({
           </div>
         </>
       )}
-      <div className="tavora-user-dock border-t p-3">
-        <div className="flex items-center gap-3 rounded-xl px-2 py-2">
-          <button type="button" onClick={() => onOpenProfile(user, true)}><Avatar person={user} size="h-9 w-9" /></button>
-          <button type="button" onClick={() => onOpenProfile(user, true)} className="min-w-0 flex-1 text-left">
-            <p className="truncate text-sm font-medium text-white">{user?.displayName || user?.username || 'Utilisateur'}</p>
-            <p className="truncate text-[11px] text-emerald-300/70">{user?.status || 'En ligne'}{user?.customStatus ? ` · ${user.customStatus}` : ''}</p>
-          </button>
-          <button type="button" onClick={onOpenSettings} className="text-white/25 hover:text-white"><Settings2 size={16} /></button>
-        </div>
-        <div className="mt-2 grid grid-cols-3 gap-1 border-t border-white/[0.06] pt-2">
-          <button type="button" onClick={onJoinServer} className="flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" title="Serveurs" aria-label="Serveurs">
-            <Plus size={15} />
-          </button>
-          <button type="button" onClick={onOpenFriendModal} className="flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" title="Amis" aria-label="Amis">
-            <UserPlus size={15} />
-          </button>
-          <button type="button" onClick={() => setIsNotificationsOpen((open) => !open)} className="relative flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" title="Alertes" aria-label="Alertes">
-            <Bell size={15} />
-            {incomingRequests.length ? <span className="absolute right-2 top-1 h-1.5 w-1.5 rounded-full bg-cyan-200" /> : null}
-          </button>
-        </div>
+      <div className="tavora-user-dock p-3">
+        {/* === PARTIE MODIFIÉE AVEC DÉCORATION ET PLAQUE === */}
+<div className="tavora-user-dock border-t p-3">
+  <div className="flex items-center gap-3 rounded-xl px-2 py-2">
+    {/* Le conteneur entier avec la plaque en arrière-plan */}
+    <div 
+      className="flex items-center gap-3 w-full rounded-xl px-2 py-2 relative"
+      style={{
+        backgroundImage: user?.nameplate && user.nameplate !== 'none' 
+          ? `url(${NAMEPLATES.find(n => n.id === user.nameplate)?.url})`
+          : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        minHeight: '48px',
+      }}
+    >
+      {/* Avatar */}
+      <button type="button" onClick={() => onOpenProfile(user, true)} className="shrink-0">
+        <AvatarWithDecoration user={user} size="h-9 w-9" />
+      </button>
+      
+      {/* Nom + statut */}
+      <button 
+        type="button" 
+        onClick={() => onOpenProfile(user, true)} 
+        className="min-w-0 flex-1 text-left"
+      >
+        <span 
+          className="block truncate text-sm font-medium"
+          style={{
+            color: user?.nameplate && user.nameplate !== 'none' 
+              ? NAMEPLATES.find(n => n.id === user.nameplate)?.color || '#ffffff'
+              : '#ffffff',
+            textShadow: user?.nameplate && user.nameplate !== 'none' && NAMEPLATES.find(n => n.id === user.nameplate)?.glow !== 'none'
+              ? NAMEPLATES.find(n => n.id === user.nameplate)?.glow
+              : undefined,
+          }}
+        >
+          {user?.displayName || user?.username || 'Utilisateur'}
+        </span>
+        <p className="truncate text-[11px] text-emerald-300/70">
+          {user?.status || 'En ligne'}{user?.customStatus ? ` · ${user.customStatus}` : ''}
+        </p>
+      </button>
+      
+      {/* Icône paramètres */}
+      <button 
+        type="button" 
+        onClick={onOpenSettings} 
+        className="text-white/25 hover:text-white shrink-0"
+      >
+        <Settings2 size={16} />
+      </button>
+    </div>
+  </div>
+  
+  {/* ===== BOUTONS DU BAS ===== */}
+  <div className="mt-2 grid grid-cols-3 gap-1 border-t border-white/[0.06] pt-2">
+    <button 
+      type="button" 
+      onClick={onJoinServer} 
+      className="flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" 
+      title="Serveurs" 
+      aria-label="Serveurs"
+    >
+      <Plus size={15} />
+    </button>
+    <button 
+      type="button" 
+      onClick={onOpenFriendModal} 
+      className="flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" 
+      title="Amis" 
+      aria-label="Amis"
+    >
+      <UserPlus size={15} />
+    </button>
+    <button 
+      type="button" 
+      onClick={() => setIsNotificationsOpen((open) => !open)} 
+      className="relative flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" 
+      title="Alertes" 
+      aria-label="Alertes"
+    >
+      <Bell size={15} />
+      {incomingRequests.length ? <span className="absolute right-2 top-1 h-1.5 w-1.5 rounded-full bg-cyan-200" /> : null}
+    </button>
+  </div>
+</div>
+        {/* === FIN PARTIE MODIFIÉE === */}
+      
         {isNotificationsOpen ? (
           <div className="mt-2 border border-white/[0.08] bg-[#0d0d12] p-3 shadow-xl">
             <div className="mb-2 flex items-center justify-between">
@@ -238,4 +490,3 @@ export default function WorkspaceSidebar({
     </aside>
   );
 }
-

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { AudioLines, ChevronLeft, ChevronRight, Clipboard, Download, Menu, Pause, Play, Search, Volume2, VolumeX, X } from 'lucide-react';
 import MusicPlayer from './MusicPlayer';
@@ -6,6 +6,8 @@ import PlaylistEditor from './PlaylistEditor';
 import PlaylistDetailOverlay from './PlaylistDetailOverlay';
 
 import { API_URL, resolveTrackUrl } from '../utils/api';
+
+let sharedAudioSocket = null;
 
 const readableTitle = (file) => file.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim() || file;
 const formatTime = (value) => {
@@ -42,7 +44,6 @@ function SearchPanel({ getAuthHeaders, onClose, onOpenProfile }) {
   return <div className="absolute right-3 top-[calc(100%+10px)] z-50 w-[min(92vw,560px)] rounded-2xl border border-white/10 bg-[#0c0c12]/95 p-4 shadow-2xl backdrop-blur-xl"><div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold text-white">Rechercher un utilisateur</h2><button title="Fermer" type="button" onClick={onClose} className="p-1 text-white/45 hover:text-white"><X size={16} /></button></div><form onSubmit={submit} className="flex gap-2"><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nom d’utilisateur" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-cyan-200/50" /><button title="Lancer la recherche" type="submit" className="rounded-lg bg-cyan-200/15 px-3 text-cyan-100 hover:bg-cyan-200/25"><Search size={16} /></button></form>{loading ? <p className="mt-4 text-xs text-white/45">Recherche en cours...</p> : error ? <p className="mt-4 text-xs text-rose-300">{error}</p> : selected ? <div className="mt-4"><WhoisCard profile={selected} onOpenProfile={onOpenProfile} /></div> : <div className="mt-4 space-y-1">{users.map((profile) => <button key={profile._id} type="button" onClick={() => setSelected(profile)} className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/8">{profile.avatarUrl ? <img src={profile.avatarUrl} alt="" className="h-9 w-9 rounded-lg object-cover" /> : <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-xs text-white">{profile.username?.[0]?.toUpperCase()}</div>}<span className="min-w-0"><strong className="block truncate text-sm text-white">{profile.displayName || profile.username}</strong><small className="text-xs text-white/40">@{profile.username}</small></span></button>)}{!users.length && query.length >= 2 ? <p className="text-xs text-white/35">Aucun utilisateur trouvé.</p> : null}</div>}</div>;
 }
 
-// eslint-disable-next-line no-unused-vars
 function LegacyAudioPanel({ isOpen, onClose, onActivityChange }) {
   const audioRef = useRef(null); const shouldPlayRef = useRef(false); const [tracks, setTracks] = useState([]); const [index, setIndex] = useState(0); const [playing, setPlaying] = useState(false); const [progress, setProgress] = useState(0); const [duration, setDuration] = useState(0); const [volume, setVolume] = useState(0.8); const [freeMode, setFreeMode] = useState(false); const [position, setPosition] = useState({ x: 0, y: 12 }); const [size, setSize] = useState({ width: 520, height: 58 }); const interactionRef = useRef(null);
   useEffect(() => { fetch(`${API_URL}/api/music/tracks`).then((response) => response.json()).then((data) => setTracks((data.tracks || []).map((track) => ({ ...track, file: track.filename })))).catch(() => setTracks([])); }, []);
@@ -61,77 +62,210 @@ function LegacyAudioPanel({ isOpen, onClose, onActivityChange }) {
 <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="truncate text-xs font-medium text-white/90">{track?.title || readableTitle(track?.file || '')}</span><span className="hidden shrink-0 text-[10px] tabular-nums text-white/35 sm:inline">{formatTime(progress)} / {formatTime(duration)}</span></div><input aria-label="Progression" type="range" min="0" max={duration || 0} step="0.1" value={progress} onChange={(event) => { setProgress(Number(event.target.value)); if (audioRef.current) audioRef.current.currentTime = Number(event.target.value); }} className="tavora-mini-progress mt-1 block h-1 w-full accent-cyan-200" /></div><div className="flex shrink-0 items-center gap-0.5"><button title="Piste precedente" type="button" onClick={() => move(-1, true)} className="rounded-full p-2 text-white/50 hover:bg-white/10 hover:text-white"><ChevronLeft size={15} /></button><button title="Pause" type="button" onClick={toggle} className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-200/15 text-cyan-100 hover:bg-cyan-200/25"><Pause size={15} /></button><button title="Piste suivante" type="button" onClick={() => move(1, true)} className="rounded-full p-2 text-white/50 hover:bg-white/10 hover:text-white"><ChevronRight size={15} /></button><button title="Rouvrir le lecteur" type="button" onClick={() => onClose(true)} className="hidden rounded-full p-2 text-white/40 hover:bg-white/10 hover:text-white sm:block"><AudioLines size={15} /></button><button title="Arreter la musique" type="button" onClick={() => { shouldPlayRef.current = false; audioRef.current?.pause(); setPlaying(false); }} className="rounded-full p-2 text-white/40 hover:bg-white/10 hover:text-white"><X size={15} /></button></div>{freeMode ? <button type="button" title="Redimensionner le lecteur" onPointerDown={startResize} className="tavora-mini-resize absolute bottom-1 right-1 h-3 w-3 cursor-se-resize rounded-sm bg-cyan-200/45" /> : null}</div> : null}</>;
 }
 
-export default function GlobalTopBar({ getAuthHeaders, onOpenProfile, userId, user, onToggleMobileSidebar }) {
-  const [panel, setPanel] = useState(null); const [audioActivity, setAudioActivity] = useState(null); const [playlistEditorOpen, setPlaylistEditorOpen] = useState(false); const [selectedPlaylist, setSelectedPlaylist] = useState(null); const [musicTracks, setMusicTracks] = useState([]); const [publicPlaylists, setPublicPlaylists] = useState([]); const rootRef = useRef(null); const audioSocketRef = useRef(null);
-  useEffect(() => { const close = (event) => { if (!rootRef.current?.contains(event.target)) setPanel(null); }; document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close); }, []);
+function GlobalTopBar({ getAuthHeaders, onOpenProfile, userId, user, onToggleMobileSidebar }) {
+  const [panel, setPanel] = useState(null);
+  const [audioActivity, setAudioActivity] = useState(null);
+  const [playlistEditorOpen, setPlaylistEditorOpen] = useState(false);
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
+  const [musicTracks, setMusicTracks] = useState([]);
+  const [publicPlaylists, setPublicPlaylists] = useState([]);
+  const rootRef = useRef(null);
+  const audioSocketRef = useRef(null);
+  const isMountedRef = useRef(true);
+
+  // Fermeture des panneaux
   useEffect(() => {
-    if (!userId) return undefined;
+    const close = (event) => {
+      if (!rootRef.current?.contains(event.target)) setPanel(null);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
 
-    let socket = null;
-    let mounted = true;
+  useEffect(() => {
+    isMountedRef.current = true;
 
-    const connectSocket = () => {
-      socket = io(API_URL, {
+    if (!sharedAudioSocket) {
+      const socket = io(API_URL, {
         transports: ['websocket', 'polling'],
         reconnection: true,
-        reconnectionAttempts: 3,
+        reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         timeout: 5000,
-        autoConnect: true
-      });
-
-      socket.on('connect', () => {
-        if (mounted) console.log('✅ Audio WebSocket connecté');
       });
 
       socket.on('connect_error', (error) => {
-        if (mounted) console.warn('⚠️ Audio WebSocket error:', error.message);
+        console.warn('Audio WebSocket error:', error.message);
       });
 
-      audioSocketRef.current = socket;
-    };
+      sharedAudioSocket = socket;
+    }
 
-    connectSocket();
+    audioSocketRef.current = sharedAudioSocket;
 
     return () => {
-      mounted = false;
-      if (socket) {
-        socket.removeAllListeners();
-        socket.emit('audio:activity', { userId, isPlaying: false });
-        socket.disconnect();
-        socket = null;
-        audioSocketRef.current = null;
-      }
+      isMountedRef.current = false;
     };
-  }, [userId]);
+  }, []);
+
+  // Envoi de l'activité audio via le socket existant
   useEffect(() => {
     if (!userId || !audioSocketRef.current) return;
     const socket = audioSocketRef.current;
-    // Vérifier si le socket est connecté avant d'émettre
+
+    // Si le socket est connecté, envoyer immédiatement
     if (socket.connected) {
-      socket.emit('audio:activity', { 
-        userId, 
-        title: audioActivity?.currentTitle, 
-        isPlaying: Boolean(audioActivity?.isPlaying) 
+      socket.emit('audio:activity', {
+        userId,
+        title: audioActivity?.currentTitle,
+        isPlaying: Boolean(audioActivity?.isPlaying)
       });
+    } else {
+      // Sinon, attendre la connexion
+      const onConnect = () => {
+        socket.emit('audio:activity', {
+          userId,
+          title: audioActivity?.currentTitle,
+          isPlaying: Boolean(audioActivity?.isPlaying)
+        });
+        socket.off('connect', onConnect);
+      };
+      socket.on('connect', onConnect);
     }
   }, [audioActivity, userId]);
+
+  // Gestion des playlists
   useEffect(() => {
     const openPlaylistEditor = (event) => {
       const createButton = event.target.closest('[title="Créer une playlist"]');
-      if (createButton) { setPlaylistEditorOpen(true); Promise.all([fetch(`${API_URL}/api/music/tracks`), fetch(`${API_URL}/api/music/playlists`)]).then(async ([trackResponse, playlistResponse]) => { const trackData = await trackResponse.json(); const playlistData = await playlistResponse.json(); setMusicTracks(trackData.tracks || []); setPublicPlaylists(playlistData.playlists || []); }).catch(() => {}); return; }
+      if (createButton) {
+        setPlaylistEditorOpen(true);
+        Promise.all([
+          fetch(`${API_URL}/api/music/tracks`),
+          fetch(`${API_URL}/api/music/playlists`)
+        ]).then(async ([trackResponse, playlistResponse]) => {
+          const trackData = await trackResponse.json();
+          const playlistData = await playlistResponse.json();
+          setMusicTracks(trackData.tracks || []);
+          setPublicPlaylists(playlistData.playlists || []);
+        }).catch(() => {});
+        return;
+      }
       if (panel !== 'audio') return;
       const clickedButton = event.target.closest('button');
       const clickedTitle = clickedButton?.textContent?.trim();
       const clickedPlaylist = publicPlaylists.find((playlist) => clickedTitle?.startsWith(playlist.title));
-      if (clickedPlaylist) window.dispatchEvent(new CustomEvent('tavora:open-playlist', { detail: clickedPlaylist }));
-      else if (clickedTitle) fetch(`${API_URL}/api/music/playlists`).then((response) => response.json()).then((data) => { const match = (data.playlists || []).find((playlist) => clickedTitle.startsWith(playlist.title)); if (match) { setPublicPlaylists(data.playlists || []); window.dispatchEvent(new CustomEvent('tavora:open-playlist', { detail: match })); } }).catch(() => {});
+      if (clickedPlaylist) {
+        window.dispatchEvent(new CustomEvent('tavora:open-playlist', { detail: clickedPlaylist }));
+      } else if (clickedTitle) {
+        fetch(`${API_URL}/api/music/playlists`).then((response) => response.json()).then((data) => {
+          const match = (data.playlists || []).find((playlist) => clickedTitle.startsWith(playlist.title));
+          if (match) {
+            setPublicPlaylists(data.playlists || []);
+            window.dispatchEvent(new CustomEvent('tavora:open-playlist', { detail: match }));
+          }
+        }).catch(() => {});
+      }
     };
+
     const showPlaylist = (event) => setSelectedPlaylist(event.detail || null);
+
     document.addEventListener('click', openPlaylistEditor);
     window.addEventListener('tavora:open-playlist', showPlaylist);
-    return () => { document.removeEventListener('click', openPlaylistEditor); window.removeEventListener('tavora:open-playlist', showPlaylist); };
+
+    return () => {
+      document.removeEventListener('click', openPlaylistEditor);
+      window.removeEventListener('tavora:open-playlist', showPlaylist);
+    };
   }, [panel, publicPlaylists]);
-  const openProfile = (targetUserId) => { setPanel(null); onOpenProfile?.({ _id: targetUserId }); };
-  return <><header ref={rootRef} className="relative z-40 flex h-11 shrink-0 items-center justify-between border-b border-white/[0.06] bg-[#08080b]/95 px-4 backdrop-blur-xl sm:px-5"><div className="flex items-center gap-2"><button title="Ouvrir la navigation" type="button" onClick={onToggleMobileSidebar} className="tavora-topbar-menu rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"><Menu size={17} /></button><span className="h-1.5 w-1.5 rounded-full bg-cyan-200/80" /><span className="text-[13px] font-semibold tracking-[0.01em] text-white/90">Tevora</span></div><div className="flex items-center gap-0.5"><button title="Lecteur audio" type="button" onClick={() => { setPanel(panel === 'audio' ? null : 'audio'); setSelectedPlaylist(null); }} className="rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"><AudioLines size={16} /></button><button title="Rechercher un utilisateur" type="button" onClick={() => setPanel(panel === 'search' ? null : 'search')} className="rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"><Search size={16} /></button><MusicPlayer isOpen={panel === 'audio'} onClose={(reopen) => { setPanel(reopen ? 'audio' : null); setSelectedPlaylist(null); }} onActivityChange={setAudioActivity} getAuthHeaders={getAuthHeaders} user={user} />{panel === 'search' ? <SearchPanel getAuthHeaders={getAuthHeaders} onClose={() => setPanel(null)} onOpenProfile={openProfile} /> : null}</div></header>{selectedPlaylist && panel === 'audio' ? <PlaylistDetailOverlay playlist={selectedPlaylist} tracks={musicTracks} onBack={() => setSelectedPlaylist(null)} /> : null}<PlaylistEditor open={playlistEditorOpen} tracks={musicTracks} getAuthHeaders={getAuthHeaders} onClose={() => { setPlaylistEditorOpen(false); setPanel(null); }} onSaved={() => { setPlaylistEditorOpen(false); setPanel(null); }} /></>;
+
+  const openProfile = (targetUserId) => {
+    setPanel(null);
+    onOpenProfile?.({ _id: targetUserId });
+  };
+
+  return (
+    <>
+      <header ref={rootRef} className="relative z-40 flex h-11 shrink-0 items-center justify-between border-b border-white/[0.06] bg-[#08080b]/95 px-4 backdrop-blur-xl sm:px-5">
+        <div className="flex items-center gap-2">
+          <button
+            title="Ouvrir la navigation"
+            type="button"
+            onClick={onToggleMobileSidebar}
+            className="tavora-topbar-menu rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"
+          >
+            <Menu size={17} />
+          </button>
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan-200/80" />
+          <span className="text-[13px] font-semibold tracking-[0.01em] text-white/90">Tevora</span>
+        </div>
+
+        <div className="flex items-center gap-0.5">
+          <button
+            title="Lecteur audio"
+            type="button"
+            onClick={() => {
+              setPanel(panel === 'audio' ? null : 'audio');
+              setSelectedPlaylist(null);
+            }}
+            className="rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"
+          >
+            <AudioLines size={16} />
+          </button>
+
+          <button
+            title="Rechercher un utilisateur"
+            type="button"
+            onClick={() => setPanel(panel === 'search' ? null : 'search')}
+            className="rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"
+          >
+            <Search size={16} />
+          </button>
+
+          <MusicPlayer
+            isOpen={panel === 'audio'}
+            onClose={(reopen) => {
+              setPanel(reopen ? 'audio' : null);
+              setSelectedPlaylist(null);
+            }}
+            onActivityChange={setAudioActivity}
+            getAuthHeaders={getAuthHeaders}
+            user={user}
+          />
+
+          {panel === 'search' ? (
+            <SearchPanel
+              getAuthHeaders={getAuthHeaders}
+              onClose={() => setPanel(null)}
+              onOpenProfile={openProfile}
+            />
+          ) : null}
+        </div>
+      </header>
+
+      {selectedPlaylist && panel === 'audio' ? (
+        <PlaylistDetailOverlay
+          playlist={selectedPlaylist}
+          tracks={musicTracks}
+          onBack={() => setSelectedPlaylist(null)}
+        />
+      ) : null}
+
+      <PlaylistEditor
+        open={playlistEditorOpen}
+        tracks={musicTracks}
+        getAuthHeaders={getAuthHeaders}
+        onClose={() => {
+          setPlaylistEditorOpen(false);
+          setPanel(null);
+        }}
+        onSaved={() => {
+          setPlaylistEditorOpen(false);
+          setPanel(null);
+        }}
+      />
+    </>
+  );
 }
+
+export default React.memo(GlobalTopBar);
