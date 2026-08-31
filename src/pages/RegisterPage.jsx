@@ -51,8 +51,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050508] px-6 py-24 text-white sm:px-8 lg:px-10">
-      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+    <div className="min-h-screen bg-[#050508] px-6 py-12 text-white sm:px-8 lg:px-10 overflow-y-auto">
+      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center py-6">
         <div>
           <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Inscription</p>
           <h1 className="mt-4 text-4xl font-semibold sm:text-5xl">Crée ton espace Tavora.</h1>
