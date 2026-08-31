@@ -286,7 +286,7 @@ export default function WorkspaceSidebar({
             <div role="button" tabIndex={0} onClick={() => setIsServerMenuOpen((open) => !open)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setIsServerMenuOpen((open) => !open); }} className="flex h-16 cursor-pointer items-center justify-between px-4 text-left transition hover:bg-white/[0.035]" aria-expanded={isServerMenuOpen}>
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#16161d] text-sm font-semibold text-white/70">
-                <ServerIcon server={selectedServer} timestamp={avatarTimestamp} />
+                <ServerIcon server={selectedServer} />
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-white">{selectedServer.name}</p>
@@ -364,111 +364,140 @@ export default function WorkspaceSidebar({
             </div>
             <button type="button" onClick={onOpenHome} className="mb-4 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-white/55 transition hover:bg-white/[0.045] hover:text-white"><MessageSquare size={16} /> Accueil</button>
             <div className="space-y-1">
-              {filteredFriends.map((friend) => (
-                <div key={friend.id} className="group flex items-center gap-2 rounded-lg px-2 py-2 transition hover:bg-white/[0.045]">
-                  <button type="button" onClick={() => onOpenDirectMessage(friend.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                    <AvatarWithDecoration user={friend} size="h-9 w-9" />
-                    <DisplayNameWithNameplate user={friend} className="truncate text-sm text-white/60 group-hover:text-white" />
-                  </button>
-                  <button type="button" onClick={() => onOpenProfile(friend, false)} className="text-white/20 opacity-0 transition group-hover:opacity-100 hover:text-white"><Users size={14} /></button>
-                </div>
-              ))}
+              {filteredFriends.map((friend) => {
+                console.log('🔍 Friend:', friend.displayName, 'nameplate:', friend.nameplate);
+                const nameplateId = friend?.nameplate || 'none';
+                const nameplate = NAMEPLATES.find(n => n.id === nameplateId) || NAMEPLATES[0];
+                const hasNameplate = nameplateId !== 'none' && nameplate?.url;
+                
+                return (
+                  <div 
+                    key={friend.id} 
+                    className="group flex items-center gap-2 rounded-lg px-2 py-2 transition hover:bg-white/[0.045] relative overflow-visible"
+                    style={{
+                      backgroundImage: hasNameplate ? `url(${nameplate.url})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                    }}
+                  >
+                    {hasNameplate && (
+                      <div className="absolute inset-0" />
+                    )}
+                    
+                    <button 
+                      type="button" 
+                      onClick={() => onOpenDirectMessage(friend.id)} 
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left relative z-10"
+                    >
+                      <AvatarWithDecoration user={friend} size="h-9 w-9" />
+                      <DisplayNameWithNameplate user={friend} className="truncate text-sm font-medium" />
+                    </button>
+                    
+                    <button 
+                      type="button" 
+                      onClick={() => onOpenProfile(friend, false)} 
+                      className="text-white/20 opacity-0 transition group-hover:opacity-100 hover:text-white relative z-10"
+                    >
+                      <Users size={14} />
+                    </button>
+                  </div>
+                );
+              })}
               {!filteredFriends.length ? <p className="px-2 py-5 text-center text-xs text-white/25">Aucune conversation</p> : null}
             </div>
           </div>
         </>
       )}
-      <div className="tavora-user-dock p-3">
-        {/* === PARTIE MODIFIÉE AVEC DÉCORATION ET PLAQUE === */}
-<div className="tavora-user-dock border-t p-3">
-  <div className="flex items-center gap-3 rounded-xl px-2 py-2">
-    {/* Le conteneur entier avec la plaque en arrière-plan */}
-    <div 
-      className="flex items-center gap-3 w-full rounded-xl px-2 py-2 relative"
-      style={{
-        backgroundImage: user?.nameplate && user.nameplate !== 'none' 
-          ? `url(${NAMEPLATES.find(n => n.id === user.nameplate)?.url})`
-          : 'none',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        minHeight: '48px',
-      }}
-    >
-      {/* Avatar */}
-      <button type="button" onClick={() => onOpenProfile(user, true)} className="shrink-0">
-        <AvatarWithDecoration user={user} size="h-9 w-9" />
-      </button>
-      
-      {/* Nom + statut */}
-      <button 
-        type="button" 
-        onClick={() => onOpenProfile(user, true)} 
-        className="min-w-0 flex-1 text-left"
-      >
-        <span 
-          className="block truncate text-sm font-medium"
-          style={{
-            color: user?.nameplate && user.nameplate !== 'none' 
-              ? NAMEPLATES.find(n => n.id === user.nameplate)?.color || '#ffffff'
-              : '#ffffff',
-            textShadow: user?.nameplate && user.nameplate !== 'none' && NAMEPLATES.find(n => n.id === user.nameplate)?.glow !== 'none'
-              ? NAMEPLATES.find(n => n.id === user.nameplate)?.glow
-              : undefined,
-          }}
-        >
-          {user?.displayName || user?.username || 'Utilisateur'}
-        </span>
-        <p className="truncate text-[11px] text-emerald-300/70">
-          {user?.status || 'En ligne'}{user?.customStatus ? ` · ${user.customStatus}` : ''}
-        </p>
-      </button>
-      
-      {/* Icône paramètres */}
-      <button 
-        type="button" 
-        onClick={onOpenSettings} 
-        className="text-white/25 hover:text-white shrink-0"
-      >
-        <Settings2 size={16} />
-      </button>
-    </div>
-  </div>
-  
-  {/* ===== BOUTONS DU BAS ===== */}
-  <div className="mt-2 grid grid-cols-3 gap-1 border-t border-white/[0.06] pt-2">
-    <button 
-      type="button" 
-      onClick={onJoinServer} 
-      className="flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" 
-      title="Serveurs" 
-      aria-label="Serveurs"
-    >
-      <Plus size={15} />
-    </button>
-    <button 
-      type="button" 
-      onClick={onOpenFriendModal} 
-      className="flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" 
-      title="Amis" 
-      aria-label="Amis"
-    >
-      <UserPlus size={15} />
-    </button>
-    <button 
-      type="button" 
-      onClick={() => setIsNotificationsOpen((open) => !open)} 
-      className="relative flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" 
-      title="Alertes" 
-      aria-label="Alertes"
-    >
-      <Bell size={15} />
-      {incomingRequests.length ? <span className="absolute right-2 top-1 h-1.5 w-1.5 rounded-full bg-cyan-200" /> : null}
-    </button>
-  </div>
-</div>
-        {/* === FIN PARTIE MODIFIÉE === */}
-      
+
+      {/* ===== DOCK UTILISATEUR AVEC PLAQUE ===== */}
+      <div className="tavora-user-dock border-t p-3">
+        <div className="flex items-center gap-3 rounded-xl px-2 py-2">
+          <div 
+            className="flex items-center gap-3 w-full rounded-xl px-2 py-2 relative"
+            style={{
+              backgroundImage: user?.nameplate && user.nameplate !== 'none' 
+                ? `url(${NAMEPLATES.find(n => n.id === user.nameplate)?.url})`
+                : 'none',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              minHeight: '48px',
+            }}
+          >
+            {/* Avatar */}
+            <button type="button" onClick={() => onOpenProfile(user, true)} className="shrink-0">
+              <AvatarWithDecoration user={user} size="h-9 w-9" />
+            </button>
+            
+            {/* Nom + statut */}
+            <button 
+              type="button" 
+              onClick={() => onOpenProfile(user, true)} 
+              className="min-w-0 flex-1 text-left"
+            >
+              <span 
+                className="block truncate text-sm font-medium"
+                style={{
+                  color: user?.nameplate && user.nameplate !== 'none' 
+                    ? NAMEPLATES.find(n => n.id === user.nameplate)?.color || '#ffffff'
+                    : '#ffffff',
+                  textShadow: user?.nameplate && user.nameplate !== 'none' && NAMEPLATES.find(n => n.id === user.nameplate)?.glow !== 'none'
+                    ? NAMEPLATES.find(n => n.id === user.nameplate)?.glow
+                    : undefined,
+                }}
+              >
+                {user?.displayName || user?.username || 'Utilisateur'}
+              </span>
+              <p className="truncate text-[11px] text-emerald-300/70">
+                {user?.status || 'En ligne'}{user?.customStatus ? ` · ${user.customStatus}` : ''}
+              </p>
+            </button>
+            
+            {/* Icône paramètres */}
+            <button 
+              type="button" 
+              onClick={onOpenSettings} 
+              className="text-white/25 hover:text-white shrink-0"
+            >
+              <Settings2 size={16} />
+            </button>
+          </div>
+        </div>
+        
+        {/* Boutons du bas */}
+        <div className="mt-2 grid grid-cols-3 gap-1 border-t border-white/[0.06] pt-2">
+          <button 
+            type="button" 
+            onClick={onJoinServer} 
+            className="flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" 
+            title="Serveurs" 
+            aria-label="Serveurs"
+          >
+            <Plus size={15} />
+          </button>
+          <button 
+            type="button" 
+            onClick={onOpenFriendModal} 
+            className="flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" 
+            title="Amis" 
+            aria-label="Amis"
+          >
+            <UserPlus size={15} />
+          </button>
+          <button 
+            type="button" 
+            onClick={() => setIsNotificationsOpen((open) => !open)} 
+            className="relative flex items-center justify-center rounded-lg p-2 text-white/45 transition hover:bg-white/[0.06] hover:text-white" 
+            title="Alertes" 
+            aria-label="Alertes"
+          >
+            <Bell size={15} />
+            {incomingRequests.length ? <span className="absolute right-2 top-1 h-1.5 w-1.5 rounded-full bg-cyan-200" /> : null}
+          </button>
+        </div>
+        
+        {/* Notifications */}
         {isNotificationsOpen ? (
           <div className="mt-2 border border-white/[0.08] bg-[#0d0d12] p-3 shadow-xl">
             <div className="mb-2 flex items-center justify-between">
@@ -487,6 +516,7 @@ export default function WorkspaceSidebar({
           </div>
         ) : null}
       </div>
+      {/* ===== FIN DOCK UTILISATEUR ===== */}
     </aside>
   );
 }

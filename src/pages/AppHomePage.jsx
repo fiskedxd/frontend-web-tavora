@@ -2388,32 +2388,62 @@ useEffect(() => {
                     >
                       {privateMessages.length > 0 ? (
                         <div className="space-y-3">
-                          {privateMessages.map((msg) => {
-                            return (
-                              <div key={msg._id || `${msg.authorUsername}-${msg.createdAt}`} onContextMenu={(event) => openMessageContext(event, msg, true)} className="tavora-message px-2 py-2 text-sm text-white/70">
-                                <div className="flex items-start gap-3">
-                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-300 overflow-hidden">
-                                    {(msg.authorAvatarUrl || msg.author?.avatarUrl || '') ? (
-                                      <img src={msg.authorAvatarUrl || msg.author?.avatarUrl || ''} alt="avatar" className="h-full w-full object-cover" />
-                                    ) : (
-                                      (msg.authorDisplayName || msg.authorUsername || 'U').charAt(0).toUpperCase()
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div>
-                                        <span className="inline-flex items-center gap-2 font-medium text-white">{msg.authorDisplayName || msg.authorUsername || 'Utilisateur'}<ProfileBadges badges={msg.authorBadges} compact />{msg.isOfficialMessage ? <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/75">Message officiel</span> : null}</span>
-                                        <p className="text-[11px] text-white/30">@{msg.authorUsername || 'user'}</p>
-                                      </div>
-                                      <span className="text-[11px] text-white/30">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                    </div>
-                                    {editingMessageId === msg._id ? <div className="mt-2 flex gap-2"><input autoFocus value={editingMessageDraft} onChange={(event) => setEditingMessageDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') editMessage(); if (event.key === 'Escape') setEditingMessageId(null); }} className="min-w-0 flex-1 rounded-lg bg-black/30 px-2 py-1 text-sm text-white outline-none" /><button type="button" onClick={editMessage} className="text-xs text-cyan-200">Enregistrer</button></div> : <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} />}
-                                    {msg.moderationAlert && user?.canModerate ? <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => handleModerationAlert(String(msg.moderationTargetId), 'ignore')} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/60 hover:bg-white/10">Ignorer</button><button type="button" onClick={() => handleModerationAlert(String(msg.moderationTargetId), 'warn')} className="rounded-lg bg-rose-400/15 px-3 py-2 text-xs font-semibold text-rose-100 hover:bg-rose-400/25">Envoyer l’avertissement</button><button type="button" onClick={() => handleCopyReviewLink(String(msg.moderationReportId))} className="rounded-lg border border-cyan-200/20 px-3 py-2 text-xs text-cyan-100 hover:bg-cyan-200/10">Copier le lien de vérification</button></div> : null}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
+{privateMessages.map((msg) => {
+  // Construire l'objet user pour la décoration
+  const authorData = {
+    id: msg.authorId,
+    avatarUrl: msg.authorAvatarUrl || msg.author?.avatarUrl || '',
+    avatarDecoration: msg.authorAvatarDecoration || msg.author?.avatarDecoration || null,
+    displayName: msg.authorDisplayName || msg.author?.displayName || msg.authorUsername || 'Utilisateur',
+    username: msg.authorUsername || msg.author?.username || 'user',
+  };
+  
+  return (
+    <div key={msg._id || `${msg.authorUsername}-${msg.createdAt}`} onContextMenu={(event) => openMessageContext(event, msg, true)} className="tavora-message px-2 py-2 text-sm text-white/70">
+      <div className="flex items-start gap-3">
+        {/* Avatar avec décoration */}
+        <button
+          type="button"
+          onClick={() => openProfileModal(authorData, false)}
+          className="shrink-0"
+        >
+          <AvatarWithDecoration user={authorData} size={36} />
+        </button>
+        
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <span className="inline-flex items-center gap-2 font-medium text-white">
+                {msg.authorDisplayName || msg.authorUsername || 'Utilisateur'}
+                <ProfileBadges badges={msg.authorBadges} compact />
+                {msg.isOfficialMessage ? <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/75">Message officiel</span> : null}
+              </span>
+              <p className="text-[11px] text-white/30">@{msg.authorUsername || 'user'}</p>
+            </div>
+            <span className="text-[11px] text-white/30">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+          
+          {editingMessageId === msg._id ? (
+            <div className="mt-2 flex gap-2">
+              <input autoFocus value={editingMessageDraft} onChange={(event) => setEditingMessageDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') editMessage(); if (event.key === 'Escape') setEditingMessageId(null); }} className="min-w-0 flex-1 rounded-lg bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+              <button type="button" onClick={editMessage} className="text-xs text-cyan-200">Enregistrer</button>
+            </div>
+          ) : (
+            <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} />
+          )}
+          
+          {msg.moderationAlert && user?.canModerate ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={() => handleModerationAlert(String(msg.moderationTargetId), 'ignore')} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/60 hover:bg-white/10">Ignorer</button>
+              <button type="button" onClick={() => handleModerationAlert(String(msg.moderationTargetId), 'warn')} className="rounded-lg bg-rose-400/15 px-3 py-2 text-xs font-semibold text-rose-100 hover:bg-rose-400/25">Envoyer l’avertissement</button>
+              <button type="button" onClick={() => handleCopyReviewLink(String(msg.moderationReportId))} className="rounded-lg border border-cyan-200/20 px-3 py-2 text-xs text-cyan-100 hover:bg-cyan-200/10">Copier le lien de vérification</button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+})}
                         </div>
                       ) : (
                         <div className="flex h-full items-center justify-center text-sm text-white/35">Aucun message privé pour l’instant.</div>
@@ -2532,35 +2562,54 @@ useEffect(() => {
                         >
                           {channelMessages.length > 0 ? (
                             <div className="space-y-1">
-                              {channelMessages.map((msg) => {
-                                return (
-                                  <div key={msg._id || `${msg.authorName}-${msg.createdAt}`} onContextMenu={(event) => openMessageContext(event, msg, false)} className="tavora-message px-2 py-2">
-                                    <div className="flex items-start gap-3">
-                                      <button
-                                        type="button"
-                                        onClick={() => openProfileModal({ id: msg.authorId, authorId: msg.authorId, username: msg.authorUsername || msg.authorName || 'user', displayName: msg.authorDisplayName || msg.authorName || 'Utilisateur', avatarUrl: msg.authorAvatarUrl || (String(msg.authorId) === String(user?._id || user?.id) ? user?.avatarUrl : '') }, false)}
-                                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-300 overflow-hidden"
-                                      >
-                                        {msg.authorAvatarUrl || (String(msg.authorId) === String(user?._id || user?.id) ? user?.avatarUrl : '') ? (
-                                          <img src={msg.authorAvatarUrl || (String(msg.authorId) === String(user?._id || user?.id) ? user?.avatarUrl : '')} alt="avatar" className="h-full w-full object-cover" />
-                                        ) : (
-                                          (msg.authorDisplayName || msg.authorName || msg.authorUsername || 'U').charAt(0).toUpperCase()
-                                        )}
-                                      </button>
-                                      <div className="min-w-0 flex-1">
-                                        <div className="flex items-center justify-between gap-2">
-                                          <div>
-                                            <span className="inline-flex items-center gap-2 font-medium text-white">{msg.authorDisplayName || msg.authorName || 'Utilisateur'}<ProfileBadges badges={msg.authorBadges} compact />{msg.isOfficialMessage ? <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/75">Message officiel</span> : null}</span>
-                                            <p className="text-[11px] text-white/30">@{msg.authorUsername || msg.authorName || 'user'}</p>
-                                          </div>
-                                          <span className="text-[11px] text-white/30">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                        </div>
-                                        {editingMessageId === msg._id ? <div className="mt-2 flex gap-2"><input autoFocus value={editingMessageDraft} onChange={(event) => setEditingMessageDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') editMessage(); if (event.key === 'Escape') setEditingMessageId(null); }} className="min-w-0 flex-1 rounded-lg bg-black/30 px-2 py-1 text-sm text-white outline-none" /><button type="button" onClick={editMessage} className="text-xs text-cyan-200">Enregistrer</button></div> : <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} avatarTimestamp={avatarTimestamp} />}
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
+{channelMessages.map((msg) => {
+  // Construire l'objet user pour la décoration
+  const authorData = {
+    id: msg.authorId,
+    avatarUrl: msg.authorAvatarUrl || (String(msg.authorId) === String(user?._id || user?.id) ? user?.avatarUrl : ''),
+    avatarDecoration: msg.authorAvatarDecoration || null,
+    displayName: msg.authorDisplayName || msg.authorName || 'Utilisateur',
+    username: msg.authorUsername || msg.authorName || 'user',
+  };
+  
+  return (
+    <div key={msg._id || `${msg.authorName}-${msg.createdAt}`} onContextMenu={(event) => openMessageContext(event, msg, false)} className="tavora-message px-2 py-2">
+      <div className="flex items-start gap-3">
+        {/* Avatar avec décoration */}
+        <button
+          type="button"
+          onClick={() => openProfileModal({ id: msg.authorId, authorId: msg.authorId, ...authorData }, false)}
+          className="shrink-0"
+        >
+          <AvatarWithDecoration user={authorData} size={40} />
+        </button>
+        
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <span className="inline-flex items-center gap-2 font-medium text-white">
+                {msg.authorDisplayName || msg.authorName || 'Utilisateur'}
+                <ProfileBadges badges={msg.authorBadges} compact />
+                {msg.isOfficialMessage ? <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/75">Message officiel</span> : null}
+              </span>
+              <p className="text-[11px] text-white/30">@{msg.authorUsername || msg.authorName || 'user'}</p>
+            </div>
+            <span className="text-[11px] text-white/30">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+          
+          {editingMessageId === msg._id ? (
+            <div className="mt-2 flex gap-2">
+              <input autoFocus value={editingMessageDraft} onChange={(event) => setEditingMessageDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') editMessage(); if (event.key === 'Escape') setEditingMessageId(null); }} className="min-w-0 flex-1 rounded-lg bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+              <button type="button" onClick={editMessage} className="text-xs text-cyan-200">Enregistrer</button>
+            </div>
+          ) : (
+            <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} avatarTimestamp={avatarTimestamp} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+})}
                             </div>
                           ) : (
                             <div className="flex h-full items-center justify-center text-sm text-white/35">
