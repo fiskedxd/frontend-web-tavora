@@ -329,6 +329,10 @@ export default function ProfileModal({
 
   const displayName = profileDraft.displayName || profileTarget?.displayName || profileTarget?.username || 'Utilisateur';
   const username = profileDraft.username || profileTarget?.username || 'user';
+  const visibleBadges = [
+    ...(Array.isArray(profileTarget?.badges) ? profileTarget.badges : []),
+    ...(profileTarget?.audioActivity?.connected || profileTarget?.spotifyConnected ? ['spotify'] : []),
+  ];
   
   const currentServerHasBothUsers = Boolean(
     !isOwnProfile
@@ -722,7 +726,7 @@ export default function ProfileModal({
                             if (hasNameplate) {
                               return (
                                 <span 
-                                  className="inline-flex items-center px-4 py-2 rounded-lg text-left"
+                                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-left"
                                   style={{
                                     backgroundImage: `url(${targetNameplate.url})`,
                                     backgroundSize: 'cover',
@@ -738,7 +742,12 @@ export default function ProfileModal({
                                     paddingLeft: '24px',
                                   }}
                                 >
-                                  {displayName}
+                                  <span className="inline-flex items-center">{displayName}</span>
+                                  {visibleBadges.length > 0 && (
+                                    <span className="inline-flex items-center shrink-0">
+                                      <ProfileBadges badges={visibleBadges} compact />
+                                    </span>
+                                  )}
                                 </span>
                               );
                             }
@@ -746,18 +755,16 @@ export default function ProfileModal({
                             return (
                               <span style={{ color: '#ffffff' }}>
                                 {displayName}
+                                {visibleBadges.length > 0 && (
+                                  <span className="ml-2 inline-flex items-center align-middle">
+                                    <ProfileBadges badges={visibleBadges} compact />
+                                  </span>
+                                )}
                               </span>
                             );
                           })()}
                           {isOwnProfile && <Pencil size={14} className="inline ml-2 text-gray-500" />}
                         </button>
-
-                        {spotifyConnected && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/40 bg-green-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-green-300">
-                            <Music size={10} />
-                            Spotify
-                          </span>
-                        )}
                       </div>
                     </div>
                   )}
