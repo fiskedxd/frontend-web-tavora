@@ -1,7 +1,8 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { API_URL } from './utils/api';
 import HomePage from './pages/HomePage';
 import DiscoverPage from './pages/DiscoverPage';
 import SpacesPage from './pages/SpacesPage';
@@ -50,6 +51,57 @@ function AuthedAuthRedirect() {
   const location = useLocation();
   const redirect = new URLSearchParams(location.search).get('redirect');
   return <Navigate to={redirect || '/home'} replace />;
+}
+
+function SpotifyCallbackPage() {
+  const { user, getAuthHeaders } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const currentUserId = user?.id || user?._id || JSON.parse(localStorage.getItem('tavora_user') || 'null')?.id || JSON.parse(localStorage.getItem('tavora_user') || 'null')?._id;
+
+    if (!code || !currentUserId) {
+      navigate('/home', { replace: true });
+      return;
+    }
+
+    const exchangeCode = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/spotify/callback`, {
+          method: 'POST',
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code, state, userId: currentUserId }),
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result?.message || 'Erreur Spotify');
+        }
+
+        navigate('/home', { replace: true });
+      } catch (error) {
+        console.error('Spotify callback error:', error);
+        navigate('/home', { replace: true });
+      }
+    };
+
+    exchangeCode();
+  }, [location.search, user, getAuthHeaders, navigate]);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#050505] text-white">
+      <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-5 text-center text-sm text-gray-300">
+        Connexion Spotify en cours...
+      </div>
+    </div>
+  );
 }
 
 function AppContent() {
@@ -108,6 +160,7 @@ function AppContent() {
               <Route path="/register" element={<RegisterPage />} />
             </>
           )}
+          <Route path="/auth/spotify/callback" element={<SpotifyCallbackPage />} />
           <Route path="/profile/:userId" element={<ProtectedRoute user={user}><ProfilePage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute user={user}><ProfilePage /></ProtectedRoute>} />
           <Route path="/server/:serverId/studio" element={<ProtectedRoute user={user}><ServerStudioPage /></ProtectedRoute>} />
