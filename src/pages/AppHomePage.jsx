@@ -1846,10 +1846,19 @@ useEffect(() => {
     const loadAudioActivity = async (targetId) => {
       if (!targetId) return null;
       try {
-        const response = await fetch(`${API_URL}/api/social/users/${targetId}/audio-activity`, { headers: getAuthHeaders() });
-        if (!response.ok) return null;
-        const data = await response.json();
-        return data.activity || null;
+        const [audioResponse, spotifyResponse] = await Promise.all([
+          fetch(`${API_URL}/api/social/users/${targetId}/audio-activity`, { headers: getAuthHeaders() }),
+          fetch(`${API_URL}/api/auth/spotify/activity/${targetId}`, { headers: getAuthHeaders() }),
+        ]);
+
+        const audioData = audioResponse.ok ? await readJsonResponse(audioResponse) : { activity: null };
+        const spotifyData = spotifyResponse.ok ? await readJsonResponse(spotifyResponse) : { activity: null };
+
+        if (spotifyData?.activity) {
+          return { ...spotifyData.activity, source: 'spotify' };
+        }
+
+        return audioData?.activity || null;
       } catch {
         return null;
       }

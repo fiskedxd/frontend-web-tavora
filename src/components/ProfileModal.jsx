@@ -411,6 +411,13 @@ export default function ProfileModal({
     offline: 'Hors ligne',
   }[userStatus] || 'Hors ligne';
 
+  const nowPlaying = profileTarget?.audioActivity;
+  const nowPlayingTitle = nowPlaying?.track || nowPlaying?.title || 'Titre inconnu';
+  const nowPlayingArtist = nowPlaying?.artist || nowPlaying?.creator || 'Artiste inconnu';
+  const nowPlayingProgress = Number(nowPlaying?.progress || nowPlaying?.currentTime || 0);
+  const nowPlayingDuration = Number(nowPlaying?.duration || 0);
+  const nowPlayingPercent = nowPlayingDuration ? Math.min(100, (nowPlayingProgress / nowPlayingDuration) * 100) : 0;
+
   const handleAvatarChange = (event) => {
     // Vérifier que l'événement et event.target existent
     if (!event || !event.target) {
@@ -941,6 +948,37 @@ export default function ProfileModal({
                     {isOwnProfile && <Pencil size={12} className="inline ml-2 text-gray-600" />}
                   </button>
                 )}
+              </section>
+            )}
+
+            {nowPlaying && (
+              <section className="mt-8">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-green-400">
+                    <Music size={12} />
+                    En écoute
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {nowPlaying.imageUrl ? (
+                      <img src={nowPlaying.imageUrl} alt={nowPlayingTitle} className="h-14 w-14 rounded-xl object-cover" />
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-green-500/20 text-green-400">
+                        <Music size={18} />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-white">{nowPlayingTitle}</div>
+                      <div className="truncate text-xs text-gray-400">{nowPlayingArtist}</div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-full rounded-full bg-green-500" style={{ width: `${nowPlayingPercent}%` }} />
+                      </div>
+                      <div className="mt-1 flex justify-between text-[10px] text-gray-500">
+                        <span>{Math.floor(nowPlayingProgress / 60000)}:{String(Math.floor((nowPlayingProgress % 60000) / 1000)).padStart(2, '0')}</span>
+                        <span>{Math.floor(nowPlayingDuration / 60000)}:{String(Math.floor((nowPlayingDuration % 60000) / 1000)).padStart(2, '0')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </section>
             )}
             
