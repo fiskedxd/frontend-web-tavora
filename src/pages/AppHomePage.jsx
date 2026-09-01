@@ -441,7 +441,225 @@ const ServerInviteCard = ({ inviteUrl, getAuthHeaders, onJoin, avatarTimestamp }
   );
 };
 
-const MessageContent = ({ content, getAuthHeaders, onJoin, avatarTimestamp }) => {
+const parseWelcomePayload = (content) => {
+  if (!content || typeof content !== 'string') return null;
+  try {
+    const parsed = JSON.parse(content);
+    return parsed && parsed.type === 'tavora-welcome' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const OfficialWelcomeMessage = ({ content, user, navigate }) => {
+  const payload = parseWelcomePayload(content) || { type: 'tavora-welcome', version: 1, step: 1 };
+  const [step, setStep] = useState(Number(payload.step) || 1);
+  const [copied, setCopied] = useState(false);
+  const inviteUrl = 'https://tavora-xi.vercel.app/invite/6a92e66c940745da8a000cc6';
+  const steps = [
+    { id: 1, label: 'Bienvenue', short: '01', name: 'Bienvenue' },
+    { id: 2, label: 'Profil', short: '02', name: 'Profil' },
+    { id: 3, label: 'Personnalisation', short: '03', name: 'Personnalisation' },
+    { id: 4, label: 'Préférences', short: '04', name: 'Préférences' },
+    { id: 5, label: 'Terminer', short: '05', name: 'Terminer' },
+  ];
+  const currentStep = steps[Math.min(steps.length - 1, Math.max(0, step - 1))];
+  const progress = (step / steps.length) * 100;
+
+  const copyInvite = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  const renderStepContent = () => {
+    switch (step) {
+      case 1:
+        return (
+          <div className="rounded-2xl border border-white/10 bg-[#111318] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.25)]">
+            <p className="text-[10px] uppercase tracking-[0.26em] text-white/35">Bienvenue sur Tavora</p>
+            <h3 className="mt-3 text-2xl font-semibold text-white">Ton compte vient d’être créé.</h3>
+            <p className="mt-2 text-sm leading-6 text-white/60">Commençons par configurer ton espace et préparer les premières étapes de ton profil.</p>
+            <button type="button" onClick={() => setStep(2)} className="mt-5 rounded-lg bg-white px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-white/90">
+              COMMENCER
+            </button>
+          </div>
+        );
+      case 2:
+        return (
+          <div className="space-y-4 rounded-2xl border border-white/10 bg-[#111318] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.25)]">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Configuration du profil</p>
+              <h3 className="mt-2 text-xl font-semibold text-white">Commence par personnaliser les informations visibles.</h3>
+            </div>
+            <div className="space-y-2.5">
+              {[
+                ['Nom d’utilisateur', user?.username || 'ton_username'],
+                ['Nom affiché', user?.displayName || 'Ton nom'],
+                ['Bio', 'Ajouter une bio'],
+                ['Lien', 'Ajouter un lien'],
+              ].map(([label, value]) => (
+                <div key={label} className="grid gap-1 rounded-xl border border-white/10 bg-[#0d0f14] px-3 py-2.5">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">{label}</span>
+                  <span className="text-sm text-white/75">{value}</span>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={() => navigate('/profile')} className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-white/10">
+              MODIFIER LE PROFIL
+            </button>
+          </div>
+        );
+      case 3:
+        return (
+          <div className="grid gap-3 rounded-2xl border border-white/10 bg-[#111318] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.25)] md:grid-cols-2">
+            {[
+              ['PHOTO DE PROFIL', 'Ajoute ou modifie ton image de profil.', 'MODIFIER'],
+              ['BANNIÈRE', 'Personnalise l’en-tête de ton profil.', 'MODIFIER'],
+              ['BIO', 'Présente-toi avec une courte description.', 'MODIFIER'],
+              ['APPARENCE', 'Configure l’apparence de ton profil.', 'MODIFIER'],
+            ].map(([title, description, action]) => (
+              <div key={title} className="rounded-xl border border-white/10 bg-[#0d0f14] p-3">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-white/35">{title}</p>
+                <p className="mt-2 text-sm leading-6 text-white/60">{description}</p>
+                <button type="button" onClick={() => navigate('/profile')} className="mt-4 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-white transition hover:bg-white/10">
+                  {action}
+                </button>
+              </div>
+            ))}
+          </div>
+        );
+      case 4:
+        return (
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-[#111318] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.25)]">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Préférences</p>
+              <h3 className="mt-2 text-xl font-semibold text-white">Panneau de configuration</h3>
+            </div>
+            <div className="space-y-2">
+              {[
+                ['Notifications', 'Activées'],
+                ['Visibilité du profil', 'Public'],
+                ['Préférences', 'Configurer'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between rounded-xl border border-white/10 bg-[#0d0f14] px-3 py-2.5">
+                  <span className="text-sm text-white/70">{label}</span>
+                  <span className="text-xs uppercase tracking-[0.15em] text-white/45">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case 5:
+        return (
+          <div className="space-y-4 rounded-2xl border border-white/10 bg-[#111318] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.25)]">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-white/35">Configuration terminée</p>
+              <h3 className="mt-2 text-xl font-semibold text-white">Ton espace Tavora est prêt.</h3>
+            </div>
+            <div className="grid gap-2">
+              {[
+                ['Profil', 'Configuré'],
+                ['Personnalisation', 'Disponible'],
+                ['Préférences', 'Configurées'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between rounded-xl border border-white/10 bg-[#0d0f14] px-3 py-2.5">
+                  <span className="text-sm text-white/70">{label}</span>
+                  <span className="text-xs uppercase tracking-[0.14em] text-white/45">{value}</span>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-xl border border-white/10 bg-[#0d0f14] p-3">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-white/35">Invitation Tavora</p>
+              <p className="mt-2 text-sm text-white/60">Utilise ton invitation pour accéder à ton espace.</p>
+              <div className="mt-3 flex gap-2">
+                <button type="button" onClick={() => window.open(inviteUrl, '_blank', 'noopener,noreferrer')} className="flex-1 rounded-lg bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-white/90">
+                  OUVRIR L’INVITATION
+                </button>
+                <button type="button" onClick={copyInvite} className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-white/10">
+                  {copied ? 'COPIÉ' : 'COPIER LE LIEN'}
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button type="button" onClick={() => navigate('/profile')} className="rounded-lg bg-white px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-white/90">
+                OUVRIR MON PROFIL
+              </button>
+              <button type="button" onClick={() => navigate('/home')} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-white/10">
+                OUVRIR TAVORA
+              </button>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="mt-3 overflow-hidden rounded-[20px] border border-white/10 bg-[#090b11] shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+      <div className="border-b border-white/10 bg-[#0d1016] px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-white/35">Tavora</p>
+            <p className="mt-1 text-sm text-white/70">Configuration du profil</p>
+          </div>
+          <div className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-white/45">Étape {step} sur {steps.length}</div>
+        </div>
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+          <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+
+      <div className="px-4 py-4">
+        <div className="mb-4 flex flex-wrap gap-2">
+          {steps.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setStep(item.id)}
+              className={`rounded-lg border px-2.5 py-1.5 text-[10px] uppercase tracking-[0.18em] transition ${
+                item.id === step
+                  ? 'border-white/20 bg-white/10 text-white'
+                  : 'border-white/10 bg-transparent text-white/40 hover:bg-white/5 hover:text-white/75'
+              }`}
+            >
+              {item.short}
+            </button>
+          ))}
+        </div>
+
+        <div className="mb-3">
+          <p className="text-[10px] uppercase tracking-[0.26em] text-white/30">{currentStep.label}</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">Bienvenue dans ton espace Tavora.</h2>
+          <p className="mt-1 text-sm text-white/60">Quelques étapes suffisent pour configurer ton profil.</p>
+        </div>
+
+        {renderStepContent()}
+
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <button type="button" disabled={step === 1} onClick={() => setStep((current) => Math.max(1, current - 1))} className="rounded-lg border border-white/10 bg-transparent px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-white/55 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/5">
+            PRÉCÉDENT
+          </button>
+          <button type="button" disabled={step === steps.length} onClick={() => setStep((current) => Math.min(steps.length, current + 1))} className="rounded-lg bg-white px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-black disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/90">
+            SUIVANT
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MessageContent = ({ content, getAuthHeaders, onJoin, avatarTimestamp, user, navigate }) => {
+  const welcomePayload = parseWelcomePayload(content);
+  if (welcomePayload) {
+    return <OfficialWelcomeMessage content={content} user={user} navigate={navigate} />;
+  }
+
   const inviteUrl = extractInviteUrl(content);
   if (!inviteUrl) return <MessageMarkdown content={content} />;
 
@@ -2496,7 +2714,7 @@ useEffect(() => {
               <button type="button" onClick={editMessage} className="text-xs text-cyan-200">Enregistrer</button>
             </div>
           ) : (
-            <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} />
+            <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} user={user} navigate={navigate} />
           )}
           
           {msg.moderationAlert && user?.canModerate ? (
@@ -2670,7 +2888,7 @@ useEffect(() => {
               <button type="button" onClick={editMessage} className="text-xs text-cyan-200">Enregistrer</button>
             </div>
           ) : (
-            <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} avatarTimestamp={avatarTimestamp} />
+            <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} avatarTimestamp={avatarTimestamp} user={user} navigate={navigate} />
           )}
         </div>
       </div>
