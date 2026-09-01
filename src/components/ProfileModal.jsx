@@ -693,63 +693,72 @@ export default function ProfileModal({
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   {isOwnProfile && editingField === 'displayName' ? (
-  <input
-    autoFocus
-    value={profileDraft.displayName}
-    onChange={(event) => setProfileDraft((current) => ({ ...current, displayName: event.target.value }))}
-    onKeyDown={(event) => { 
-      if (event.key === 'Escape') cancelField(); 
-      if (event.key === 'Enter') saveField('displayName'); 
-    }} 
-    onBlur={() => saveField('displayName')}
-    className="w-full bg-transparent text-2xl font-bold text-white outline-none border-b border-gray-700 focus:border-white"
-  />
-) : (
-  <div className="relative inline-block w-full">
-<button 
-  type="button" 
-  disabled={!isOwnProfile} 
-  onClick={() => isOwnProfile && setEditingField('displayName')} 
-  className="block w-full truncate text-left text-2xl font-bold disabled:cursor-default relative"
-  title={displayName}
->
-  {(() => {
-    const targetNameplateId = profileTarget?.nameplate || 'none';
-    const targetNameplate = NAMEPLATES.find(n => n.id === targetNameplateId) || NAMEPLATES[0];
-    const hasNameplate = targetNameplateId !== 'none' && targetNameplate?.url;
-    
-    if (hasNameplate) {
-      return (
-        <span 
-          className="inline-flex items-center px-4 py-2 rounded-lg text-left"
-          style={{
-            backgroundImage: `url(${targetNameplate.url})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            color: targetNameplate.color,
-            textShadow: targetNameplate.glow !== 'none' ? targetNameplate.glow : undefined,
-            minHeight: '50px',
-            width: '80%', // Largeur automatique selon le contenu
-            maxWidth: '100%', // Limite la largeur à 80% du conteneur
-            paddingLeft: '24px', // Décale le pseudo vers la droite
-          }}
-        >
-          {displayName}
-        </span>
-      );
-    } else {
-      return (
-        <span style={{ color: '#ffffff' }}>
-          {displayName}
-        </span>
-      );
-    }
-  })()}
-  {isOwnProfile && <Pencil size={14} className="inline ml-2 text-gray-500" />}
-</button>
+                    <input
+                      autoFocus
+                      value={profileDraft.displayName}
+                      onChange={(event) => setProfileDraft((current) => ({ ...current, displayName: event.target.value }))}
+                      onKeyDown={(event) => { 
+                        if (event.key === 'Escape') cancelField(); 
+                        if (event.key === 'Enter') saveField('displayName'); 
+                      }} 
+                      onBlur={() => saveField('displayName')}
+                      className="w-full bg-transparent text-2xl font-bold text-white outline-none border-b border-gray-700 focus:border-white"
+                    />
+                  ) : (
+                    <div className="relative inline-block w-full">
+                      <div className="flex items-center gap-2">
+                        <button 
+                          type="button" 
+                          disabled={!isOwnProfile} 
+                          onClick={() => isOwnProfile && setEditingField('displayName')} 
+                          className="block truncate text-left text-2xl font-bold disabled:cursor-default relative"
+                          title={displayName}
+                        >
+                          {(() => {
+                            const targetNameplateId = profileTarget?.nameplate || 'none';
+                            const targetNameplate = NAMEPLATES.find(n => n.id === targetNameplateId) || NAMEPLATES[0];
+                            const hasNameplate = targetNameplateId !== 'none' && targetNameplate?.url;
+                            
+                            if (hasNameplate) {
+                              return (
+                                <span 
+                                  className="inline-flex items-center px-4 py-2 rounded-lg text-left"
+                                  style={{
+                                    backgroundImage: `url(${targetNameplate.url})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    backgroundRepeat: 'no-repeat',
+                                    fontSize: '1.5rem',
+                                    fontWeight: 'bold',
+                                    color: targetNameplate.color,
+                                    textShadow: targetNameplate.glow !== 'none' ? targetNameplate.glow : undefined,
+                                    minHeight: '50px',
+                                    width: '80%',
+                                    maxWidth: '100%',
+                                    paddingLeft: '24px',
+                                  }}
+                                >
+                                  {displayName}
+                                </span>
+                              );
+                            }
+
+                            return (
+                              <span style={{ color: '#ffffff' }}>
+                                {displayName}
+                              </span>
+                            );
+                          })()}
+                          {isOwnProfile && <Pencil size={14} className="inline ml-2 text-gray-500" />}
+                        </button>
+
+                        {spotifyConnected && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/40 bg-green-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-green-300">
+                            <Music size={10} />
+                            Spotify
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -960,47 +969,6 @@ export default function ProfileModal({
               </section>
             )}
 
-            {spotifyConnected && (
-              <section className="mt-8">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                  <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-green-400">
-                    <Music size={12} />
-                    {nowPlaying?.track || nowPlaying?.title ? 'En écoute' : 'Spotify connecté'}
-                  </div>
-
-                  {nowPlaying?.track || nowPlaying?.title ? (
-                    <div className="flex items-center gap-3">
-                      {nowPlaying.imageUrl ? (
-                        <img src={nowPlaying.imageUrl} alt={nowPlayingTitle} className="h-14 w-14 rounded-xl object-cover" />
-                      ) : (
-                        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-green-500/20 text-green-400">
-                          <Music size={18} />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-white">{nowPlayingTitle}</div>
-                        <div className="truncate text-xs text-gray-400">{nowPlayingArtist}</div>
-                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-                          <div className="h-full rounded-full bg-green-500" style={{ width: `${nowPlayingPercent}%` }} />
-                        </div>
-                        <div className="mt-1 flex justify-between text-[10px] text-gray-500">
-                          <span>{Math.floor(nowPlayingProgress / 60000)}:{String(Math.floor((nowPlayingProgress % 60000) / 1000)).padStart(2, '0')}</span>
-                          <span>{Math.floor(nowPlayingDuration / 60000)}:{String(Math.floor((nowPlayingDuration % 60000) / 1000)).padStart(2, '0')}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-green-500/20 bg-green-500/10 px-3 py-2 text-sm text-green-300">
-                      <span>Compte Spotify relié</span>
-                      <span className="rounded-full border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.15em]">
-                        OK
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
-            
             {/* Informations */}
             <section className="mt-8 space-y-3">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
