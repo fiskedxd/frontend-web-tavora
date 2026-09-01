@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { API_URL } from '../utils/api';
 
 const HomePage = () => {
-  const { user } = useAuth();
+  const { user, login, getAuthHeaders } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNavbar, setShowNavbar] = useState(true);
@@ -180,6 +181,381 @@ const HomePage = () => {
 
   const goToPage = (path) => {
     window.location.href = path;
+  };
+
+  const onboardingOrder = ['email', 'password', 'displayName', 'phone', 'server'];
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('onboarding');
+  const [onboardingStep, setOnboardingStep] = useState('email');
+  const [onboardingError, setOnboardingError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [onboardingData, setOnboardingData] = useState({
+    email: '',
+    password: '',
+    displayName: '',
+    country: 'FR',
+    phone: '',
+  });
+
+  useEffect(() => {
+    document.body.style.overflow = isOnboardingOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOnboardingOpen]);
+
+  const stepMeta = {
+    email: {
+      title: 'Create your Tavora account',
+      subtitle: 'Enter your email to get started.',
+      stepLabel: 'Step 1 of 5',
+      button: 'Continue',
+    },
+    password: {
+      title: 'Create a password',
+      subtitle: 'Choose a secure password for your Tavora account.',
+      stepLabel: 'Step 2 of 5',
+      button: 'Continue',
+    },
+    displayName: {
+      title: 'Choose your display name',
+      subtitle: 'This is the name your friends will see on Tavora.',
+      stepLabel: 'Step 3 of 5',
+      button: 'Continue',
+    },
+    phone: {
+      title: 'Add your phone number',
+      subtitle: 'Add your phone number to help secure your account.',
+      stepLabel: 'Step 4 of 5',
+      button: 'Continue',
+    },
+    server: {
+      title: 'Create your first server',
+      subtitle: 'Your server is where you meet your friends. Create your own and start chatting.',
+      stepLabel: 'Step 5 of 5',
+      button: 'Create my own',
+    },
+  };
+
+  const closeOnboarding = () => {
+    setIsOnboardingOpen(false);
+    setAuthMode('onboarding');
+    setOnboardingStep('email');
+    setOnboardingError('');
+    setOnboardingData({ email: '', password: '', displayName: '', country: 'FR', phone: '' });
+  };
+
+  const goToLogin = () => {
+    setAuthMode('login');
+    setOnboardingError('');
+  };
+
+  const handleLogin = async () => {
+    if (!loginData.email.trim() || !loginData.password.trim()) {
+      setOnboardingError('Veuillez renseigner votre email et votre mot de passe.');
+      return;
+    }
+
+    setAuthLoading(true);
+    setOnboardingError('');
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: loginData.email.trim().toLowerCase(),
+          password: loginData.password,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Connexion impossible.');
+      }
+
+      login(data.user, data.token);
+      closeOnboarding();
+    } catch (error) {
+      setOnboardingError(error.message || 'Connexion impossible.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const goToNextStep = () => {
+    const currentIndex = onboardingOrder.indexOf(onboardingStep);
+
+    if (onboardingStep === 'email') {
+      if (!onboardingData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(onboardingData.email.trim())) {
+        setOnboardingError('Please enter a valid email address.');
+        return;
+      }
+    }
+
+    if (onboardingStep === 'password') {
+      if (!onboardingData.password.trim() || onboardingData.password.trim().length < 8) {
+        setOnboardingError('Choose a password with at least 8 characters.');
+        return;
+      }
+    }
+
+    if (onboardingStep === 'displayName') {
+      if (!onboardingData.displayName.trim()) {
+        setOnboardingError('Please enter a display name.');
+        return;
+      }
+    }
+
+    if (onboardingStep === 'phone') {
+      if (!onboardingData.country.trim() || !onboardingData.phone.trim()) {
+        setOnboardingError('Please enter your country and phone number.');
+        return;
+      }
+    }
+
+    setOnboardingError('');
+    if (currentIndex < onboardingOrder.length - 1) {
+      setOnboardingStep(onboardingOrder[currentIndex + 1]);
+    }
+  };
+
+  const handleOnboardingSubmit = async () => {
+    if (onboardingStep === 'server') {
+      setAuthLoading(true);
+      setOnboardingError('');
+
+      try {
+        const usernameSeed = onboardingData.displayName.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        const payload = {
+          username: usernameSeed || `user${Date.now()}`,
+          displayName: onboardingData.displayName.trim(),
+          email: onboardingData.email.trim().toLowerCase(),
+          phone: onboardingData.phone.trim(),
+          password: onboardingData.password,
+          confirmPassword: onboardingData.password,
+          acceptTerms: true,
+        };
+
+        const response = await fetch(`${API_URL}/api/auth/register`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || 'Création du compte impossible.');
+        }
+
+        login(data.user, data.token);
+        closeOnboarding();
+      } catch (error) {
+        setOnboardingError(error.message || 'Création du compte impossible.');
+      } finally {
+        setAuthLoading(false);
+      }
+      return;
+    }
+    goToNextStep();
+  };
+
+  const renderLoginContent = () => (
+    <div className="animate-[onboarding-in_0.35s_ease-out]" style={{ animationName: 'onboarding-in', animationDuration: '0.35s', animationTimingFunction: 'ease-out' }}>
+      <div className="mb-8">
+        <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-300/70">Welcome back</p>
+        <h2 className="mt-3 text-4xl font-semibold tracking-tight text-white">Log in to Tavora</h2>
+        <p className="mt-3 text-sm text-white/55">Use your account details to continue inside the app.</p>
+      </div>
+
+      <div className="space-y-5">
+        {onboardingError && (
+          <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{onboardingError}</div>
+        )}
+
+        <label className="block">
+          <span className="mb-2 block text-[11px] uppercase tracking-[0.24em] text-white/40">Email</span>
+          <input
+            type="email"
+            value={loginData.email}
+            onChange={(event) => setLoginData((current) => ({ ...current, email: event.target.value }))}
+            placeholder="you@example.com"
+            className="w-full rounded-2xl border border-white/10 bg-[#0d1016] px-4 py-3.5 text-base text-white outline-none transition focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20 placeholder:text-white/30"
+          />
+        </label>
+
+        <label className="block">
+          <span className="mb-2 block text-[11px] uppercase tracking-[0.24em] text-white/40">Password</span>
+          <input
+            type="password"
+            value={loginData.password}
+            onChange={(event) => setLoginData((current) => ({ ...current, password: event.target.value }))}
+            placeholder="Enter your password"
+            className="w-full rounded-2xl border border-white/10 bg-[#0d1016] px-4 py-3.5 text-base text-white outline-none transition focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20 placeholder:text-white/30"
+          />
+        </label>
+
+        <button type="button" onClick={handleLogin} disabled={authLoading} className="w-full rounded-2xl bg-white px-4 py-3.5 text-sm font-semibold uppercase tracking-[0.22em] text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60">
+          {authLoading ? 'Please wait…' : 'Log in'}
+        </button>
+
+        <button type="button" onClick={() => setAuthMode('onboarding')} className="w-full rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm font-medium text-white/75 transition hover:bg-white/[0.05] hover:text-white">
+          Create account
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderOnboardingContent = () => {
+    switch (onboardingStep) {
+      case 'email':
+        return (
+          <div key="email" className="animate-[onboarding-in_0.35s_ease-out]" style={{ animationName: 'onboarding-in', animationDuration: '0.35s', animationTimingFunction: 'ease-out' }}>
+            <div className="mb-8">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-300/70">Track</p>
+              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-white">Create your Tavora account</h2>
+              <p className="mt-3 text-sm text-white/55">Enter your email to get started.</p>
+            </div>
+            <div className="space-y-5">
+              <label className="block">
+                <span className="mb-2 block text-[11px] uppercase tracking-[0.24em] text-white/40">Email</span>
+                <input
+                  type="email"
+                  value={onboardingData.email}
+                  onChange={(event) => setOnboardingData((current) => ({ ...current, email: event.target.value }))}
+                  placeholder="you@example.com"
+                  className="w-full rounded-2xl border border-white/10 bg-[#0d1016] px-4 py-3.5 text-base text-white outline-none transition focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20 placeholder:text-white/30"
+                />
+              </label>
+              <button type="button" onClick={handleOnboardingSubmit} className="w-full rounded-2xl bg-white px-4 py-3.5 text-sm font-semibold uppercase tracking-[0.22em] text-black transition hover:bg-white/90">
+                Continue
+              </button>
+            </div>
+          </div>
+        );
+      case 'password':
+        return (
+          <div key="password" className="animate-[onboarding-in_0.35s_ease-out]" style={{ animationName: 'onboarding-in', animationDuration: '0.35s', animationTimingFunction: 'ease-out' }}>
+            <div className="mb-8">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-300/70">Step 2 of 5</p>
+              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-white">Create a password</h2>
+              <p className="mt-3 text-sm text-white/55">Choose a secure password for your Tavora account.</p>
+            </div>
+            <div className="space-y-5">
+              <label className="block">
+                <span className="mb-2 block text-[11px] uppercase tracking-[0.24em] text-white/40">Password</span>
+                <input
+                  type="password"
+                  value={onboardingData.password}
+                  onChange={(event) => setOnboardingData((current) => ({ ...current, password: event.target.value }))}
+                  placeholder="Enter a secure password"
+                  className="w-full rounded-2xl border border-white/10 bg-[#0d1016] px-4 py-3.5 text-base text-white outline-none transition focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20 placeholder:text-white/30"
+                />
+              </label>
+              <button type="button" onClick={handleOnboardingSubmit} className="w-full rounded-2xl bg-white px-4 py-3.5 text-sm font-semibold uppercase tracking-[0.22em] text-black transition hover:bg-white/90">
+                Continue
+              </button>
+            </div>
+          </div>
+        );
+      case 'displayName':
+        return (
+          <div key="displayName" className="animate-[onboarding-in_0.35s_ease-out]" style={{ animationName: 'onboarding-in', animationDuration: '0.35s', animationTimingFunction: 'ease-out' }}>
+            <div className="mb-8">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-300/70">Step 3 of 5</p>
+              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-white">Choose your display name</h2>
+              <p className="mt-3 text-sm text-white/55">This is the name your friends will see on Tavora.</p>
+            </div>
+            <div className="space-y-5">
+              <label className="block">
+                <span className="mb-2 block text-[11px] uppercase tracking-[0.24em] text-white/40">Enter a Display Name</span>
+                <input
+                  type="text"
+                  value={onboardingData.displayName}
+                  onChange={(event) => setOnboardingData((current) => ({ ...current, displayName: event.target.value }))}
+                  placeholder="Your display name"
+                  className="w-full rounded-2xl border border-white/10 bg-[#0d1016] px-4 py-3.5 text-base text-white outline-none transition focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20 placeholder:text-white/30"
+                />
+              </label>
+              <button type="button" onClick={handleOnboardingSubmit} className="w-full rounded-2xl bg-white px-4 py-3.5 text-sm font-semibold uppercase tracking-[0.22em] text-black transition hover:bg-white/90">
+                Continue
+              </button>
+            </div>
+          </div>
+        );
+      case 'phone':
+        return (
+          <div key="phone" className="animate-[onboarding-in_0.35s_ease-out]" style={{ animationName: 'onboarding-in', animationDuration: '0.35s', animationTimingFunction: 'ease-out' }}>
+            <div className="mb-8">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-300/70">Step 4 of 5</p>
+              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-white">Add your phone number</h2>
+              <p className="mt-3 text-sm text-white/55">Add your phone number to help secure your account.</p>
+            </div>
+            <div className="space-y-5">
+              <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
+                <label className="block">
+                  <span className="mb-2 block text-[11px] uppercase tracking-[0.24em] text-white/40">Country</span>
+                  <select
+                    value={onboardingData.country}
+                    onChange={(event) => setOnboardingData((current) => ({ ...current, country: event.target.value }))}
+                    className="w-full rounded-2xl border border-white/10 bg-[#0d1016] px-4 py-3.5 text-base text-white outline-none transition focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20"
+                  >
+                    <option value="FR">France</option>
+                    <option value="US">United States</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="CA">Canada</option>
+                    <option value="DE">Germany</option>
+                    <option value="ES">Spain</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-[11px] uppercase tracking-[0.24em] text-white/40">Phone number</span>
+                  <input
+                    type="tel"
+                    value={onboardingData.phone}
+                    onChange={(event) => setOnboardingData((current) => ({ ...current, phone: event.target.value }))}
+                    placeholder="612345678"
+                    className="w-full rounded-2xl border border-white/10 bg-[#0d1016] px-4 py-3.5 text-base text-white outline-none transition focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20 placeholder:text-white/30"
+                  />
+                </label>
+              </div>
+              <button type="button" onClick={handleOnboardingSubmit} className="w-full rounded-2xl bg-white px-4 py-3.5 text-sm font-semibold uppercase tracking-[0.22em] text-black transition hover:bg-white/90">
+                Continue
+              </button>
+            </div>
+          </div>
+        );
+      case 'server':
+        return (
+          <div key="server" className="animate-[onboarding-in_0.35s_ease-out]" style={{ animationName: 'onboarding-in', animationDuration: '0.35s', animationTimingFunction: 'ease-out' }}>
+            <div className="mb-8">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-300/70">Step 5 of 5</p>
+              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-white">Create your first server</h2>
+              <p className="mt-3 text-sm text-white/55">Your server is where you meet your friends. Create your own and start chatting.</p>
+            </div>
+            <div className="space-y-5">
+              <button type="button" onClick={handleOnboardingSubmit} disabled={authLoading} className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-[#0d1016] px-5 py-4 text-left transition hover:border-indigo-400/40 hover:bg-[#111724] disabled:cursor-not-allowed disabled:opacity-60">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/75">
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="3" />
+                      <path d="M8 7h8M8 12h8M8 17h5" />
+                    </svg>
+                  </div>
+                  <span className="text-lg font-medium text-white">Create my own</span>
+                </div>
+                <svg className="h-5 w-5 text-white/60 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -367,7 +743,7 @@ const HomePage = () => {
               <span className="group-hover:translate-y-0.5 transition-transform duration-300">{Icons.download}</span>
               Download for Windows
             </a>
-            <button className="relative inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-semibold text-base hover:bg-indigo-500 transition-all duration-300 hover:scale-105 active:scale-95">
+            <button type="button" onClick={() => setIsOnboardingOpen(true)} className="relative inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-semibold text-base hover:bg-indigo-500 transition-all duration-300 hover:scale-105 active:scale-95">
               {Icons.play}
               Open in browser
             </button>
@@ -379,6 +755,102 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {isOnboardingOpen && (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#050508]/55 backdrop-blur-[2px] p-2 sm:p-4" onClick={closeOnboarding}>
+          <div className="mx-auto w-full max-w-[1080px] pt-2 sm:pt-4" style={{ paddingTop: '10%' }} onClick={(event) => event.stopPropagation()}>
+            <div
+              className="relative overflow-hidden rounded-[26px] border border-white/10 bg-[#0a0b10]/95 shadow-[0_40px_120px_rgba(0,0,0,0.72)]"
+              style={{ animation: 'modal-in 0.32s ease-out both' }}
+            >
+              <button type="button" onClick={closeOnboarding} aria-label="Close onboarding" className="absolute right-4 top-4 z-20 rounded-full border border-white/10 bg-white/5 p-2 text-white/60 transition hover:bg-white/10 hover:text-white">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+
+              <div className="grid max-h-[92vh] md:grid-cols-[0.95fr_1.05fr]">
+                <div className="relative hidden overflow-hidden md:block">
+                  <div
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: "url('/membrelistbackground.png')" }}
+                  />
+                  <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(4,6,12,0.58),rgba(8,10,18,0.18),rgba(8,10,18,0.72))]" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.12),transparent_32%)]" />
+                  <div className="relative flex h-full min-h-[420px] flex-col justify-between p-8">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm">
+                        <svg className="h-5 w-5 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                        </svg>
+                      </div>
+                      <span className="text-sm font-medium tracking-[0.22em] text-white/80 uppercase">Tavora</span>
+                    </div>
+
+                    <div className="max-w-[280px] rounded-[20px] border border-white/10 bg-black/20 p-4 backdrop-blur-sm">
+                      <p className="text-[10px] uppercase tracking-[0.28em] text-white/45">Welcome</p>
+                      <p className="mt-2 text-2xl font-semibold text-white">Your space begins here.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative flex min-h-[420px] flex-col justify-between bg-[#090b10] p-5 sm:p-8 lg:p-10">
+                  {authMode === 'login' ? (
+                    <>
+                      <div className="mb-6 flex items-center justify-between text-[10px] uppercase tracking-[0.26em] text-white/35">
+                        <span>Tavora</span>
+                        <span>Login</span>
+                      </div>
+
+                      <div className="flex-1 overflow-hidden">
+                        {renderLoginContent()}
+                      </div>
+
+                      <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4 text-[11px] uppercase tracking-[0.18em] text-white/35">
+                        <button type="button" onClick={() => setAuthMode('onboarding')} className="transition hover:text-white/75">
+                          Create account
+                        </button>
+                        <span>Secure access</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-6 flex items-center justify-between text-[10px] uppercase tracking-[0.26em] text-white/35">
+                        <span>Tavora</span>
+                        <span>{stepMeta[onboardingStep].stepLabel}</span>
+                      </div>
+
+                      <div className="flex-1 overflow-hidden">
+                        {renderOnboardingContent()}
+                      </div>
+
+                      <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4 text-[11px] uppercase tracking-[0.18em] text-white/35">
+                        <button type="button" onClick={() => setOnboardingStep((current) => onboardingOrder[Math.max(0, onboardingOrder.indexOf(current) - 1)])} disabled={onboardingStep === 'email'} className="transition hover:text-white/75 disabled:cursor-not-allowed disabled:opacity-40">
+                          Back
+                        </button>
+                        <p>Already have an account? <button type="button" onClick={goToLogin} className="ml-1 text-white/70 hover:text-white">Log in</button></p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes modal-in {
+          from { opacity: 0; transform: scale(0.96); }
+          to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes onboarding-in {
+          from { opacity: 0; transform: translateX(26px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
 
       <section id="spaces" className="py-36 px-6 relative scroll-mt-28">
         <div className="max-w-7xl mx-auto">
