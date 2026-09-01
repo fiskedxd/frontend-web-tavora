@@ -362,7 +362,7 @@ export default function ProfileModal({
 
   const handleSpotifyConnect = async () => {
     try {
-      const response = await fetch(`${API_URL}/auth/spotify/login`);
+      const response = await fetch(`${API_URL}/api/auth/spotify/login`);
       const data = await response.json();
       if (data.url) {
         window.location.href = data.url;
