@@ -49,7 +49,7 @@ export default function ProfilePage() {
             <p className="mt-1 text-sm text-white/40">@{profile.username}</p>
             {profile.isSuspect ? <p title="Ce compte fait actuellement l’objet d’une vérification suite à plusieurs signalements." className="mt-2 inline-block rounded bg-rose-950/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200">Compte suspect</p> : null}
             {!profile.isOfficial ? <p className="mt-6 max-w-2xl text-sm leading-6 text-white/65">{profile.bio || 'Aucune bio pour le moment.'}</p> : null}
-            {profile.isOfficial ? <p className="mt-6 text-sm text-cyan-100/70">Compte officiel de Tevora · Membre depuis toujours</p> : null}
+            {profile.isOfficial ? <p className="mt-6 text-sm text-cyan-100/70">Compte officiel de Tavora · Membre depuis toujours</p> : null}
           </div>
         </section>
       </div>

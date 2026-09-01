@@ -1288,7 +1288,7 @@ useEffect(() => {
       const prepareResponse = await fetch(`${API_URL}/api/social/official/actus/prepare`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ content: match[1] }) });
       const prepared = await readJsonResponse(prepareResponse);
       if (!prepareResponse.ok) { setProfileMessage(prepared.message || 'Commande refusée.'); return; }
-      if (!window.confirm(`Annonce de Tevora\n\n${prepared.announcement.content}\n\nDestinataires : ${prepared.announcement.recipientCount}\n\nEnvoyer l’annonce ?`)) { setProfileMessage('Annonce annulée.'); return; }
+      if (!window.confirm(`Annonce de Tavora\n\n${prepared.announcement.content}\n\nDestinataires : ${prepared.announcement.recipientCount}\n\nEnvoyer l’annonce ?`)) { setProfileMessage('Annonce annulée.'); return; }
       const sendResponse = await fetch(`${API_URL}/api/social/official/actus/${prepared.announcement.id}/send`, { method: 'POST', headers: getAuthHeaders() });
       const sent = await readJsonResponse(sendResponse);
       setPrivateDraft('');

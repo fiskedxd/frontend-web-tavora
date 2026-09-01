@@ -197,7 +197,7 @@ function GlobalTopBar({ getAuthHeaders, onOpenProfile, userId, user, onToggleMob
             <Menu size={17} />
           </button>
           <span className="h-1.5 w-1.5 rounded-full bg-cyan-200/80" />
-          <span className="text-[13px] font-semibold tracking-[0.01em] text-white/90">Tevora</span>
+          <span className="text-[13px] font-semibold tracking-[0.01em] text-white/90">Tavora</span>
         </div>
 
         <div className="flex items-center gap-0.5">
