@@ -353,16 +353,16 @@ export default function WorkspaceSidebar({
         <>
           <div className="border-b px-4 py-4">
             <div className="relative">
-              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/25" />
-              <input value={friendSearch} onChange={(event) => onFriendSearchChange(event.target.value)} placeholder="Rechercher" className="w-full rounded-lg border border-white/[0.07] bg-black/20 py-2 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-cyan-200/30" />
+              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#697083]" />
+              <input value={friendSearch} onChange={(event) => onFriendSearchChange(event.target.value)} placeholder="Rechercher" className="tavora-search-input w-full rounded-lg border border-[#191C2D] bg-[#070A14] py-2 pl-9 pr-3 text-sm text-[#D8DBE5] outline-none placeholder:text-[#697083] focus:border-[#7065E8]/60" />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto px-3 py-5">
             <div className="mb-5 flex items-center justify-between px-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">Messages privés</p>
-              <button type="button" onClick={() => onOpenProfile(user, true)} className="text-white/30 transition hover:text-white"><Settings2 size={15} /></button>
+              <p className="tavora-section-label text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9298AA]">Messages privés</p>
+              <button type="button" onClick={() => onOpenProfile(user, true)} className="text-[#858B9D] transition hover:text-white"><Settings2 size={15} /></button>
             </div>
-            <button type="button" onClick={onOpenHome} className="mb-4 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-white/55 transition hover:bg-white/[0.045] hover:text-white"><MessageSquare size={16} /> Accueil</button>
+            <button type="button" onClick={onOpenHome} className="tavora-home-link mb-4 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-[#746AF0] transition hover:bg-[#15182A] hover:text-[#8177F2]"><MessageSquare size={16} /> Accueil</button>
             <div className="space-y-1">
               {filteredFriends.map((friend) => {
                 console.log('🔍 Friend:', friend.displayName, 'nameplate:', friend.nameplate);
@@ -391,7 +391,7 @@ export default function WorkspaceSidebar({
                       className="flex min-w-0 flex-1 items-center gap-3 text-left relative z-10"
                     >
                       <AvatarWithDecoration user={friend} size="h-9 w-9" />
-                      <DisplayNameWithNameplate user={friend} className="truncate text-sm font-medium" />
+                      <DisplayNameWithNameplate user={friend} className="tavora-friend-name truncate text-sm font-medium text-[#D8DBE5]" />
                     </button>
                     
                     <button 

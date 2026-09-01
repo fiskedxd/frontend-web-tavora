@@ -186,13 +186,13 @@ function GlobalTopBar({ getAuthHeaders, onOpenProfile, userId, user, onToggleMob
 
   return (
     <>
-      <header ref={rootRef} className="relative z-40 flex h-11 shrink-0 items-center justify-between border-b border-white/[0.06] bg-[#08080b]/95 px-4 backdrop-blur-xl sm:px-5">
+      <header ref={rootRef} className="tavora-topbar relative flex h-11 shrink-0 items-center justify-between px-4 sm:px-5">
         <div className="flex items-center gap-2">
           <button
             title="Ouvrir la navigation"
             type="button"
             onClick={onToggleMobileSidebar}
-            className="tavora-topbar-menu rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"
+            className="tavora-topbar-button tavora-topbar-menu rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"
           >
             <Menu size={17} />
           </button>
@@ -208,7 +208,7 @@ function GlobalTopBar({ getAuthHeaders, onOpenProfile, userId, user, onToggleMob
               setPanel(panel === 'audio' ? null : 'audio');
               setSelectedPlaylist(null);
             }}
-            className="rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"
+            className="tavora-topbar-button rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"
           >
             <AudioLines size={16} />
           </button>
@@ -217,7 +217,7 @@ function GlobalTopBar({ getAuthHeaders, onOpenProfile, userId, user, onToggleMob
             title="Rechercher un utilisateur"
             type="button"
             onClick={() => setPanel(panel === 'search' ? null : 'search')}
-            className="rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"
+            className="tavora-topbar-button rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"
           >
             <Search size={16} />
           </button>

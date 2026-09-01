@@ -2699,11 +2699,19 @@ useEffect(() => {
               </div>
             </div>
           ) : (
-            <div className="min-h-full bg-gradient-to-br from-[#0a0a12] via-[#010102] to-[#0a0a12]">
-              <div className="p-8">
-                <div className="flex items-center justify-between flex-wrap gap-4 mb-8">
+            <div className="">
+              <div className="tavora-home-scene" aria-hidden="true">
+                <div className="tavora-stars" />
+                <div className="tavora-moon" />
+                <div className="tavora-cloud tavora-cloud-left" />
+                <div className="tavora-cloud tavora-cloud-right" />
+                <div className="tavora-hills" />
+              </div>
+
+              <div className="relative z-10 p-8">
+                <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-indigo-400/40 flex items-center gap-2 font-medium">
+                    <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.3em] text-indigo-300/60">
                       <Home size={14} />
                       Accueil
                     </p>
@@ -2713,38 +2721,50 @@ useEffect(() => {
                   </div>
                   <button 
                     onClick={() => setIsServerModalOpen(true)}
-                    className="rounded-xl border border-white/10 bg-[#1a1a24] px-4 py-2 text-sm text-white/40 transition-all duration-200 hover:bg-[#2a2a38] hover:text-white flex items-center gap-2"
+                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#1a1a24]/80 px-4 py-2 text-sm text-white/80 transition-all duration-200 hover:bg-[#2a2a38] hover:text-white"
                   >
                     <Plus size={16} />
                     Créer
                   </button>
                 </div>
-                <div className="grid flex-1 gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                  <div className="rounded-3xl border border-white/5 bg-[#0d0d18]/80 p-8 backdrop-blur-sm">
-                    <p className="text-sm text-white/20">Ton espace</p>
-                    <h2 className="mt-3 text-3xl font-light text-white">Des conversations fluides, des communautés vivantes.</h2>
-                    <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/30">
+
+                <div className="grid flex-1 gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+                  <div className="tavora-home-hero rounded-[28px] border border-white/5 p-8 backdrop-blur-[2px]">
+                    <p className="text-sm tracking-[0.18em] text-white/20">Ton espace</p>
+                    <h2 className="mt-3 max-w-[560px] text-3xl font-light leading-[1.15] text-white md:text-5xl">
+                      Des conversations fluides, des communautés vivantes.
+                    </h2>
+                    <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/45 md:text-base">
                       Retrouve tes amis, tes discussions et tes serveurs dans une expérience pensée pour rester connecté sans friction.
                     </p>
+
+                    <button
+                      type="button"
+                      className="mt-8 inline-flex items-center gap-3 rounded-xl border border-white/10 bg-[#2d2d40]/80 px-5 py-3 text-sm font-medium text-white/90 shadow-[0_8px_25px_rgba(91,112,255,0.2)] transition hover:bg-[#35364f]"
+                    >
+                      Découvrir Tavora
+                      <span aria-hidden="true">›</span>
+                    </button>
                   </div>
-                  <div className="rounded-3xl border border-white/5 bg-[#0d0d18]/80 p-6 backdrop-blur-sm">
-                    <p className="text-sm font-medium text-white/40 flex items-center gap-2">
-                      <Package size={16} className="text-indigo-400/60" />
+
+                  <div className="tavora-home-summary rounded-[28px] border border-white/5 p-5 backdrop-blur-sm">
+                    <p className="flex items-center gap-2 text-sm font-medium text-white/45">
+                      <Package size={16} className="text-indigo-300/60" />
                       Vue d'ensemble
                     </p>
                     <div className="mt-4 space-y-3">
-                      <div className="rounded-2xl border border-white/5 bg-[#13131e] p-4">
-                        <p className="text-white/60 flex items-center gap-2 text-sm">
-                          <Users size={14} className="text-indigo-400/60" />
+                      <div className="rounded-2xl border border-white/5 bg-[#0f1220]/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                        <p className="flex items-center gap-2 text-sm text-white/60">
+                          <Users size={14} className="text-indigo-300/60" />
                           Serveurs
                         </p>
                         <p className="mt-1 text-sm text-white/20">
                           {servers.length > 0 ? `${servers.length} serveur${servers.length > 1 ? 's' : ''}` : 'Aucun serveur'}
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-white/5 bg-[#13131e] p-4">
-                        <p className="text-white/60 flex items-center gap-2 text-sm">
-                          <User size={14} className="text-indigo-400/60" />
+                      <div className="rounded-2xl border border-white/5 bg-[#0f1220]/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                        <p className="flex items-center gap-2 text-sm text-white/60">
+                          <User size={14} className="text-indigo-300/60" />
                           Amis
                         </p>
                         <p className="mt-1 text-sm text-white/20">
