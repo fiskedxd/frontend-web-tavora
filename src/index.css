@@ -310,30 +310,37 @@ body {
 .tavora-home-hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(8, 12, 20, 0.55), rgba(6, 9, 18, 0.78)),
+  background:
+    linear-gradient(135deg, rgba(18, 22, 38, 0.68), rgba(10, 13, 22, 0.72)),
     url('/hometextbackground.png') center center / cover no-repeat;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 18px 40px rgba(13, 14, 25, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 18px 48px rgba(13, 14, 25, 0.3),
+    0 0 0 1px rgba(167, 139, 250, 0.08);
   border-color: rgba(255,255,255,0.08);
-  backdrop-filter: blur(2px) saturate(1.06);
-  -webkit-backdrop-filter: blur(2px) saturate(1.06);
+  backdrop-filter: blur(14px) saturate(1.18);
+  -webkit-backdrop-filter: blur(14px) saturate(1.18);
 }
 
 .tavora-home-hero::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 58% 30%, rgba(175, 152, 255, 0.12), transparent 25%);
+  background: radial-gradient(circle at 58% 30%, rgba(175, 152, 255, 0.18), transparent 24%);
   pointer-events: none;
 }
 
 .tavora-home-summary {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(8, 12, 20, 0.58), rgba(6, 9, 18, 0.82));
-  border-color: rgba(255,255,255,0.06);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 18px 35px rgba(6, 10, 18, 0.25);
-  backdrop-filter: blur(2px) saturate(1.05);
-  -webkit-backdrop-filter: blur(2px) saturate(1.05);
+  background: linear-gradient(180deg, rgba(12, 15, 28, 0.58), rgba(8, 11, 20, 0.8));
+  border-color: rgba(255,255,255,0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 18px 38px rgba(6, 10, 18, 0.28),
+    0 0 0 1px rgba(167, 139, 250, 0.06);
+  backdrop-filter: blur(16px) saturate(1.16);
+  -webkit-backdrop-filter: blur(16px) saturate(1.16);
 }
 
 .tavora-stars,
@@ -364,14 +371,14 @@ body {
 }
 
 .tavora-app-shell {
-  --app-bg: var(--bg-primary);
-  --app-surface: var(--surface-base);
-  --app-raised: var(--surface-raised);
-  --app-elevated: var(--surface-elevated);
+  --app-bg: #05070d;
+  --app-surface: #090d16;
+  --app-raised: #0c1019;
+  --app-elevated: #101722;
   background:
-    radial-gradient(circle at 15% -10%, rgba(112, 101, 232, 0.18), transparent 30%),
-    radial-gradient(circle at 100% 18%, rgba(129, 119, 242, 0.08), transparent 24%),
-    var(--app-bg);
+    radial-gradient(circle at 15% -10%, rgba(112, 101, 232, 0.12), transparent 28%),
+    radial-gradient(circle at 100% 18%, rgba(67, 98, 255, 0.08), transparent 26%),
+    #05070d;
   color: var(--text-primary);
   letter-spacing: 0;
   font-size: 14px;
@@ -569,10 +576,10 @@ body {
 
 .tavora-app-shell {
   background:
-    linear-gradient(180deg, rgba(3, 5, 12, 0.58), rgba(3, 5, 12, 0.72)),
-    url('/homebackground.png') center center / cover no-repeat !important;
-  backdrop-filter: blur(3px) saturate(1.1);
-  -webkit-backdrop-filter: blur(3px) saturate(1.1);
+    linear-gradient(180deg, rgba(4, 6, 12, 0.9), rgba(4, 6, 12, 0.96)),
+    #05070d !important;
+  backdrop-filter: blur(4px) saturate(1.08);
+  -webkit-backdrop-filter: blur(4px) saturate(1.08);
 }
 
 .tavora-conversation {
@@ -589,6 +596,72 @@ body {
   border-right: 1px solid rgba(148, 163, 184, 0.10) !important;
   backdrop-filter: blur(2px) saturate(1.08);
   -webkit-backdrop-filter: blur(2px) saturate(1.08);
+}
+
+.tavora-server-shell {
+  background:
+    radial-gradient(circle at top left, rgba(98, 117, 255, 0.08), transparent 22%),
+    radial-gradient(circle at bottom right, rgba(102, 200, 255, 0.05), transparent 26%),
+    #020409 !important;
+}
+
+.tavora-server-shell .tavora-workspace,
+.tavora-server-shell .tavora-chat,
+.tavora-server-shell .tavora-conversation,
+.tavora-server-shell .tavora-navigation,
+.tavora-server-shell .tavora-channel-rail,
+.tavora-server-shell .tavora-members-rail,
+.tavora-server-shell .tavora-server-rail,
+.tavora-server-shell .tavora-chat-column {
+  background-image: none !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.tavora-server-shell .tavora-navigation,
+.tavora-server-shell .tavora-channel-rail,
+.tavora-server-shell .tavora-conversation,
+.tavora-server-shell .tavora-members-rail {
+  border: 1px solid rgba(148, 163, 184, 0.14) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 18px 40px rgba(2, 4, 9, 0.30) !important;
+  backdrop-filter: blur(12px) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.15) !important;
+}
+
+.tavora-server-shell .tavora-navigation,
+.tavora-server-shell .tavora-channel-rail {
+  background: linear-gradient(180deg, rgba(10, 13, 22, 0.78), rgba(8, 10, 18, 0.9)) !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.12) !important;
+  border-radius: 18px 0 0 18px !important;
+}
+
+.tavora-server-shell .tavora-conversation {
+  background: linear-gradient(180deg, rgba(12, 16, 24, 0.72), rgba(8, 10, 18, 0.92)) !important;
+  border-left: 1px solid rgba(148, 163, 184, 0.10) !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.10) !important;
+  border-radius: 0 !important;
+}
+
+.tavora-server-shell .tavora-members-rail {
+  background: linear-gradient(180deg, rgba(10, 13, 22, 0.74), rgba(8, 10, 18, 0.9)) !important;
+  border-radius: 0 18px 18px 0 !important;
+}
+
+.tavora-server-shell .tavora-chat-header {
+  background: rgba(9, 12, 19, 0.26) !important;
+  border-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+.tavora-server-shell .tavora-message-list {
+  background: rgba(12, 15, 22, 0.18) !important;
+}
+
+.tavora-server-shell .tavora-server-rail {
+  background: rgba(5, 8, 16, 0.82) !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.10) !important;
+  backdrop-filter: blur(8px) saturate(1.08);
+  -webkit-backdrop-filter: blur(8px) saturate(1.08);
 }
 
 .tavora-navigation,

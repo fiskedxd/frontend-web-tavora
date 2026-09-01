@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import { AudioLines, ChevronLeft, ChevronRight, Clipboard, Download, Menu, Pause, Play, Search, Volume2, VolumeX, X } from 'lucide-react';
+import { AudioLines, Bell, ChevronLeft, ChevronRight, Clipboard, Download, Menu, Pause, Play, Search, Volume2, VolumeX, X } from 'lucide-react';
 import MusicPlayer from './MusicPlayer';
 import PlaylistEditor from './PlaylistEditor';
 import PlaylistDetailOverlay from './PlaylistDetailOverlay';
@@ -62,7 +62,7 @@ function LegacyAudioPanel({ isOpen, onClose, onActivityChange }) {
 <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="truncate text-xs font-medium text-white/90">{track?.title || readableTitle(track?.file || '')}</span><span className="hidden shrink-0 text-[10px] tabular-nums text-white/35 sm:inline">{formatTime(progress)} / {formatTime(duration)}</span></div><input aria-label="Progression" type="range" min="0" max={duration || 0} step="0.1" value={progress} onChange={(event) => { setProgress(Number(event.target.value)); if (audioRef.current) audioRef.current.currentTime = Number(event.target.value); }} className="tavora-mini-progress mt-1 block h-1 w-full accent-cyan-200" /></div><div className="flex shrink-0 items-center gap-0.5"><button title="Piste precedente" type="button" onClick={() => move(-1, true)} className="rounded-full p-2 text-white/50 hover:bg-white/10 hover:text-white"><ChevronLeft size={15} /></button><button title="Pause" type="button" onClick={toggle} className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-200/15 text-cyan-100 hover:bg-cyan-200/25"><Pause size={15} /></button><button title="Piste suivante" type="button" onClick={() => move(1, true)} className="rounded-full p-2 text-white/50 hover:bg-white/10 hover:text-white"><ChevronRight size={15} /></button><button title="Rouvrir le lecteur" type="button" onClick={() => onClose(true)} className="hidden rounded-full p-2 text-white/40 hover:bg-white/10 hover:text-white sm:block"><AudioLines size={15} /></button><button title="Arreter la musique" type="button" onClick={() => { shouldPlayRef.current = false; audioRef.current?.pause(); setPlaying(false); }} className="rounded-full p-2 text-white/40 hover:bg-white/10 hover:text-white"><X size={15} /></button></div>{freeMode ? <button type="button" title="Redimensionner le lecteur" onPointerDown={startResize} className="tavora-mini-resize absolute bottom-1 right-1 h-3 w-3 cursor-se-resize rounded-sm bg-cyan-200/45" /> : null}</div> : null}</>;
 }
 
-function GlobalTopBar({ getAuthHeaders, onOpenProfile, userId, user, onToggleMobileSidebar }) {
+function GlobalTopBar({ getAuthHeaders, onOpenProfile, userId, user, onToggleMobileSidebar, liveNotifications = { directMessages: [] }, isLiveNotificationsOpen = false, setIsLiveNotificationsOpen = () => {}, openDirectMessage = () => {} }) {
   const [panel, setPanel] = useState(null);
   const [audioActivity, setAudioActivity] = useState(null);
   const [playlistEditorOpen, setPlaylistEditorOpen] = useState(false);
@@ -201,6 +201,22 @@ function GlobalTopBar({ getAuthHeaders, onOpenProfile, userId, user, onToggleMob
         </div>
 
         <div className="flex items-center gap-0.5">
+          <div className="relative z-[99998]">
+            <button
+              title="Notifications et nouveaux messages"
+              type="button"
+              onClick={() => setIsLiveNotificationsOpen(!isLiveNotificationsOpen)}
+              className="tavora-topbar-button relative rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white"
+            >
+              <Bell size={16} />
+              {liveNotifications.directMessages.length ? <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-200 px-1 text-[10px] font-bold text-black">{liveNotifications.directMessages.reduce((total, item) => total + item.count, 0) > 99 ? '99+' : liveNotifications.directMessages.reduce((total, item) => total + item.count, 0)}</span> : null}
+            </button>
+            {isLiveNotificationsOpen ? <div className="tavora-live-notifications fixed z-[99999] w-72 overflow-hidden rounded-xl border border-white/10 bg-[#0d0d12] p-3 shadow-2xl shadow-black/60" style={{ top: '72px', right: '20px' }}>
+              <div className="mb-2 flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Nouveaux messages</p><button type="button" onClick={() => setIsLiveNotificationsOpen(false)} className="text-white/30 hover:text-white"><X size={14} /></button></div>
+              {liveNotifications.directMessages.length ? liveNotifications.directMessages.map((notification) => <button key={notification.userId} type="button" onClick={() => { setIsLiveNotificationsOpen(false); openDirectMessage(notification.userId); }} className="flex w-full items-center gap-3 border-t border-white/[0.06] px-1 py-3 text-left hover:bg-white/[0.04]"><div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white/[0.08] text-center text-sm leading-9 text-white/70">{notification.user?.avatarUrl ? <img src={notification.user.avatarUrl} alt="" className="h-full w-full object-cover" /> : (notification.user?.displayName || notification.user?.username || '?').charAt(0).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="truncate text-sm text-white/80">{notification.user?.displayName || notification.user?.username || 'Utilisateur'}</p><p className="truncate text-xs text-white/40">{notification.lastMessage || 'Nouveau message'}</p></div><span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-200 px-1 text-[10px] font-bold text-black">{notification.count}</span></button>) : <p className="border-t border-white/[0.06] py-4 text-center text-xs text-white/35">Aucun nouveau message.</p>}
+            </div> : null}
+          </div>
+
           <button
             title="Lecteur audio"
             type="button"

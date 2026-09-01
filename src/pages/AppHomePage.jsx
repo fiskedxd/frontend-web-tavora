@@ -601,6 +601,11 @@ function AppHomePage() {
   const channelConversationKey = `${selectedServer?.id || ''}:${activeChannelId || ''}`;
   const privateConversationKey = params.userId || '';
 
+  const totalCommunityMembers = Math.max(
+    servers.reduce((total, server) => total + (server.memberCount ?? server.members?.length ?? 0), 0),
+    friends.length + 1,
+  );
+
   useEffect(() => {
     setHomeAvatarFailed(false);
   }, [user?.avatarUrl]);
@@ -968,12 +973,13 @@ useEffect(() => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Impossible de bloquer cet utilisateur.');
       await refreshSocial();
+      setProfileTarget((current) => ({ ...(current || {}), isBlocked: true, isFriend: false }));
+      setProfileMessage('Utilisateur bloqué.');
     } catch (error) {
       setProfileMessage(error.message);
     }
   };
 
-  // Ajoute cette fonction après handleBlockFriend (vers la ligne 450)
   const handleUnblockUser = async (targetUserId) => {
     try {
       const response = await fetch(`${API_URL}/api/social/users/${targetUserId}/unblock`, {
@@ -983,8 +989,8 @@ useEffect(() => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Impossible de débloquer cet utilisateur.');
       await refreshSocial();
+      setProfileTarget((current) => ({ ...(current || {}), isBlocked: false, isFriend: false }));
       setProfileMessage('Utilisateur débloqué.');
-      // Fermer le profil si ouvert
       setIsProfileModalOpen(false);
     } catch (error) {
       setProfileMessage(error.message);
@@ -1868,17 +1874,47 @@ useEffect(() => {
       return;
     }
     const targetId = profileUser?.authorId || profileUser?.userId || profileUser?.id || profileUser?._id || null;
+    const currentUserId = user?._id || user?.id;
+    const isCurrentUserFriend = (profileUser) => {
+      const targetUserId = profileUser?.authorId || profileUser?.userId || profileUser?.id || profileUser?._id;
+      if (!targetUserId) return false;
+      const friendIds = new Set((friends || []).map((friend) => String(friend.id || friend._id)));
+      return friendIds.has(String(targetUserId));
+    };
+    const isCurrentUserBlocked = (profileUser) => {
+      const targetUserId = profileUser?.authorId || profileUser?.userId || profileUser?.id || profileUser?._id;
+      if (!targetUserId) return false;
+      const blockedIds = new Set((user?.blockedUsers || []).map((item) => String(item)));
+      return blockedIds.has(String(targetUserId));
+    };
+    const isCurrentUserBlockedByTarget = (profileUser) => {
+      const targetUserId = profileUser?.authorId || profileUser?.userId || profileUser?.id || profileUser?._id;
+      if (!targetUserId) return false;
+      const blockedByIds = new Set((profileUser?.blockedBy || []).map((item) => String(item)));
+      return blockedByIds.has(String(currentUserId));
+    };
     if (!targetId) {
-      setProfileTarget({ ...(profileUser || {}), isSelf: false });
+      const fallbackProfile = profileUser || {};
+      const resolvedProfile = {
+        ...fallbackProfile,
+        id: fallbackProfile.id || fallbackProfile._id || targetId,
+        _id: fallbackProfile._id || fallbackProfile.id || targetId,
+        isSelf: false,
+        isFriend: isCurrentUserFriend(fallbackProfile),
+        isBlocked: isCurrentUserBlocked(fallbackProfile) || isCurrentUserBlockedByTarget(fallbackProfile),
+        isBlockedByMe: isCurrentUserBlocked(fallbackProfile),
+        isBlockedByThem: isCurrentUserBlockedByTarget(fallbackProfile),
+      };
+      setProfileTarget(resolvedProfile);
       setProfileDraft({
-        displayName: (profileUser || {}).displayName || (profileUser || {}).username || 'Utilisateur',
-        username: (profileUser || {}).username || 'user',
-        bio: (profileUser || {}).bio || '',
-        avatarUrl: (profileUser || {}).avatarUrl || '',
-        bannerUrl: (profileUser || {}).bannerUrl || '',
-        activity: (profileUser || {}).activity || null,
-        avatarDecoration: (profileUser || {}).avatarDecoration || null,
-        nameplate: (profileUser || {}).nameplate || 'none',
+        displayName: fallbackProfile.displayName || fallbackProfile.username || 'Utilisateur',
+        username: fallbackProfile.username || 'user',
+        bio: fallbackProfile.bio || '',
+        avatarUrl: fallbackProfile.avatarUrl || '',
+        bannerUrl: fallbackProfile.bannerUrl || '',
+        activity: fallbackProfile.activity || null,
+        avatarDecoration: fallbackProfile.avatarDecoration || null,
+        nameplate: fallbackProfile.nameplate || 'none',
       });
       setProfileMessage('');
       setIsProfileModalOpen(true);
@@ -1891,7 +1927,17 @@ useEffect(() => {
       if (!response.ok) {
         if (response.status === 404 && profileUser) {
           const fallbackProfile = profileUser || {};
-          setProfileTarget({ ...fallbackProfile, id: targetId, _id: targetId, isSelf: false });
+          const resolvedProfile = {
+            ...fallbackProfile,
+            id: targetId,
+            _id: targetId,
+            isSelf: false,
+            isFriend: isCurrentUserFriend(fallbackProfile),
+            isBlocked: isCurrentUserBlocked(fallbackProfile) || isCurrentUserBlockedByTarget(fallbackProfile),
+            isBlockedByMe: isCurrentUserBlocked(fallbackProfile),
+            isBlockedByThem: isCurrentUserBlockedByTarget(fallbackProfile),
+          };
+          setProfileTarget(resolvedProfile);
           setProfileDraft({
             displayName: fallbackProfile.displayName || fallbackProfile.username || 'Utilisateur',
             username: fallbackProfile.username || 'user',
@@ -1910,9 +1956,18 @@ useEffect(() => {
       }
       const sourceProfile = data.user || {};
       const audioActivity = await loadAudioActivity(sourceProfile._id || sourceProfile.id || targetId);
-      const currentUserId = user?._id || user?.id;
       const sourceUserId = sourceProfile.id || sourceProfile._id || targetId;
-      setProfileTarget({ ...(profileUser || {}), ...sourceProfile, audioActivity, isSelf: String(sourceUserId) === String(currentUserId) });
+      const targetStatusProfile = {
+        ...(profileUser || {}),
+        ...sourceProfile,
+        audioActivity,
+        isSelf: String(sourceUserId) === String(currentUserId),
+        isFriend: (friends || []).some((friend) => String(friend.id || friend._id) === String(sourceUserId)) || (user?.friends || []).some((friendId) => String(friendId) === String(sourceUserId)),
+        isBlocked: (user?.blockedUsers || []).some((blockedId) => String(blockedId) === String(sourceUserId)) || (sourceProfile?.blockedBy || []).some((blockedById) => String(blockedById) === String(currentUserId)),
+        isBlockedByMe: (user?.blockedUsers || []).some((blockedId) => String(blockedId) === String(sourceUserId)),
+        isBlockedByThem: (sourceProfile?.blockedBy || []).some((blockedById) => String(blockedById) === String(currentUserId)),
+      };
+      setProfileTarget(targetStatusProfile);
       setProfileDraft({
         displayName: sourceProfile.displayName || sourceProfile.username || 'Utilisateur',
         username: sourceProfile.username || 'user',
@@ -1929,7 +1984,17 @@ useEffect(() => {
       console.error(error);
       if (requestId !== profileRequestIdRef.current) return;
       const fallbackProfile = profileUser || user || {};
-      setProfileTarget({ ...fallbackProfile, id: targetId, _id: targetId, isSelf: false });
+      const resolvedFallbackProfile = {
+        ...fallbackProfile,
+        id: targetId,
+        _id: targetId,
+        isSelf: false,
+        isFriend: (friends || []).some((friend) => String(friend.id || friend._id) === String(targetId)) || (user?.friends || []).some((friendId) => String(friendId) === String(targetId)),
+        isBlocked: (user?.blockedUsers || []).some((blockedId) => String(blockedId) === String(targetId)) || (fallbackProfile?.blockedBy || []).some((blockedById) => String(blockedById) === String(currentUserId)),
+        isBlockedByMe: (user?.blockedUsers || []).some((blockedId) => String(blockedId) === String(targetId)),
+        isBlockedByThem: (fallbackProfile?.blockedBy || []).some((blockedById) => String(blockedById) === String(currentUserId)),
+      };
+      setProfileTarget(resolvedFallbackProfile);
       setProfileDraft({
         displayName: fallbackProfile.displayName || fallbackProfile.username || 'Utilisateur',
         username: fallbackProfile.username || 'user',
@@ -2100,13 +2165,17 @@ useEffect(() => {
   }, []);
 
   return (
-    <div className="tavora-app-shell flex h-screen flex-col overflow-hidden text-white">
+    <div className={`tavora-app-shell flex h-screen flex-col overflow-hidden text-white ${selectedServer ? 'tavora-server-shell' : ''}`}>
     <GlobalTopBar
       getAuthHeaders={getAuthHeaders}
       user={user}
       userId={user?._id || user?.id}
       onOpenProfile={handleOpenProfile}
       onToggleMobileSidebar={handleToggleMobileSidebar}
+      liveNotifications={liveNotifications}
+      isLiveNotificationsOpen={isLiveNotificationsOpen}
+      setIsLiveNotificationsOpen={setIsLiveNotificationsOpen}
+      openDirectMessage={openDirectMessage}
     />
       <div className="tavora-workspace flex min-h-0 flex-1 overflow-visible">
         <aside className="tavora-server-rail flex w-[64px] flex-col items-center justify-between py-2 shrink-0">
@@ -2127,22 +2196,7 @@ useEffect(() => {
                 <span className="text-base font-semibold text-white/60">{(user?.displayName || user?.username || 'U').charAt(0).toUpperCase()}</span>
               )}
             </motion.div>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsLiveNotificationsOpen((open) => !open)}
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-white/5 bg-[#15151b] text-white/45 transition hover:bg-[#202027] hover:text-white"
-                aria-label="Notifications et nouveaux messages"
-                title="Notifications et nouveaux messages"
-              >
-                <Bell size={18} />
-                {liveNotifications.directMessages.length ? <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-200 px-1 text-[10px] font-bold text-black">{liveNotifications.directMessages.reduce((total, item) => total + item.count, 0) > 99 ? '99+' : liveNotifications.directMessages.reduce((total, item) => total + item.count, 0)}</span> : null}
-              </button>
-              {isLiveNotificationsOpen ? <div className="tavora-live-notifications absolute left-14 top-0 z-[70] w-72 overflow-hidden rounded-xl border border-white/10 bg-[#0d0d12] p-3 shadow-2xl shadow-black/60">
-                <div className="mb-2 flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Nouveaux messages</p><button type="button" onClick={() => setIsLiveNotificationsOpen(false)} className="text-white/30 hover:text-white"><X size={14} /></button></div>
-                {liveNotifications.directMessages.length ? liveNotifications.directMessages.map((notification) => <button key={notification.userId} type="button" onClick={() => { setIsLiveNotificationsOpen(false); openDirectMessage(notification.userId); }} className="flex w-full items-center gap-3 border-t border-white/[0.06] px-1 py-3 text-left hover:bg-white/[0.04]"><div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white/[0.08] text-center text-sm leading-9 text-white/70">{notification.user?.avatarUrl ? <img src={notification.user.avatarUrl} alt="" className="h-full w-full object-cover" /> : (notification.user?.displayName || notification.user?.username || '?').charAt(0).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="truncate text-sm text-white/80">{notification.user?.displayName || notification.user?.username || 'Utilisateur'}</p><p className="truncate text-xs text-white/40">{notification.lastMessage || 'Nouveau message'}</p></div><span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-200 px-1 text-[10px] font-bold text-black">{notification.count}</span></button>) : <p className="border-t border-white/[0.06] py-4 text-center text-xs text-white/35">Aucun nouveau message.</p>}
-              </div> : null}
-            </div>
+
             <div className="w-8 h-px bg-white/5" />
             <div className="flex flex-col items-center gap-1 w-full px-[14px]">
               {servers.length > 0 ? servers.map((server) => (
@@ -2728,47 +2782,75 @@ useEffect(() => {
                   </button>
                 </div>
 
-                <div className="grid flex-1 gap-6 lg:grid-cols-[1.25fr_0.75fr]">
-                  <div className="tavora-home-hero rounded-[28px] border border-white/5 p-8 backdrop-blur-[2px]">
-                    <p className="text-sm tracking-[0.18em] text-white/20">Ton espace</p>
-                    <h2 className="mt-3 max-w-[560px] text-3xl font-light leading-[1.15] text-white md:text-5xl">
-                      Des conversations fluides, des communautés vivantes.
-                    </h2>
-                    <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/45 md:text-base">
-                      Retrouve tes amis, tes discussions et tes serveurs dans une expérience pensée pour rester connecté sans friction.
-                    </p>
+                <div className="grid flex-1 gap-6 lg:grid-cols-[1.35fr_0.65fr]">
+                  <div className="tavora-home-hero relative overflow-hidden rounded-[32px] border border-white/10 p-8 shadow-[0_30px_80px_rgba(8,12,22,0.6)] backdrop-blur-xl">
+                    <div className="absolute inset-0 bg-[#080A12]/50" />
+                    <div className="relative z-10">
+                      <p className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.28em] text-white/60">
+                        Ton espace
+                      </p>
+                      <h2 className="mt-5 max-w-[560px] text-3xl font-light leading-[1.1] text-white md:text-5xl">
+                        Des conversations <span className="font-medium text-violet-300 drop-shadow-[0_0_18px_rgba(167,139,250,0.45)]">fluides</span>, des communautés <span className="font-medium text-violet-300 drop-shadow-[0_0_18px_rgba(167,139,250,0.45)]">vivantes</span>.
+                      </h2>
+                      <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/50 md:text-base">
+                        Retrouve tes amis, tes discussions et tes serveurs dans une expérience pensée pour rester connecté sans friction.
+                      </p>
 
-                    <button
-                      type="button"
-                      className="mt-8 inline-flex items-center gap-3 rounded-xl border border-white/10 bg-[#2d2d40]/80 px-5 py-3 text-sm font-medium text-white/90 shadow-[0_8px_25px_rgba(91,112,255,0.2)] transition hover:bg-[#35364f]"
-                    >
-                      Découvrir Tavora
-                      <span aria-hidden="true">›</span>
-                    </button>
+                      <div className="mt-8 flex flex-wrap items-center gap-4">
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-3 rounded-2xl border border-violet-400/20 bg-violet-500/15 px-5 py-3 text-sm font-medium text-violet-100 shadow-[0_12px_35px_rgba(109,92,255,0.28)] transition hover:bg-violet-500/20"
+                        >
+                          Découvrir Tavora
+                          <span aria-hidden="true">›</span>
+                        </button>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#101522]/70 px-3 py-2 text-xs text-white/55 backdrop-blur-sm">
+                          <span className="text-white/40">Membres</span>
+                          <span className="font-medium text-white/80">{totalCommunityMembers}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="tavora-home-summary rounded-[28px] border border-white/5 p-5 backdrop-blur-sm">
-                    <p className="flex items-center gap-2 text-sm font-medium text-white/45">
-                      <Package size={16} className="text-indigo-300/60" />
+                  <div className="tavora-home-summary rounded-[30px] border border-white/10 p-5 shadow-[0_24px_60px_rgba(8,12,20,0.42)] backdrop-blur-xl">
+                    <p className="flex items-center gap-2 text-sm font-medium text-white/50">
+                      <Package size={16} className="text-violet-300/80" />
                       Vue d'ensemble
                     </p>
                     <div className="mt-4 space-y-3">
-                      <div className="rounded-2xl border border-white/5 bg-[#0f1220]/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                        <p className="flex items-center gap-2 text-sm text-white/60">
-                          <Users size={14} className="text-indigo-300/60" />
-                          Serveurs
+                      <div className="rounded-2xl border border-white/8 bg-[#0e1320]/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-violet-400/20 hover:bg-[#101827]">
+                        <p className="flex items-center justify-between text-sm text-white/60">
+                          <span className="flex items-center gap-2">
+                            <Users size={14} className="text-violet-300/80" />
+                            Serveurs
+                          </span>
+                          <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-violet-200/90">
+                            actif
+                          </span>
                         </p>
-                        <p className="mt-1 text-sm text-white/20">
-                          {servers.length > 0 ? `${servers.length} serveur${servers.length > 1 ? 's' : ''}` : 'Aucun serveur'}
+                        <p className="mt-2 text-xl font-medium text-white">
+                          {servers.length > 0 ? `${servers.length}` : '0'}
+                        </p>
+                        <p className="mt-1 text-xs text-white/35">
+                          {servers.length > 0 ? `serveur${servers.length > 1 ? 's' : ''}` : 'Aucun serveur'}
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-white/5 bg-[#0f1220]/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                        <p className="flex items-center gap-2 text-sm text-white/60">
-                          <User size={14} className="text-indigo-300/60" />
-                          Amis
+
+                      <div className="rounded-2xl border border-white/8 bg-[#0e1320]/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-violet-400/20 hover:bg-[#101827]">
+                        <p className="flex items-center justify-between text-sm text-white/60">
+                          <span className="flex items-center gap-2">
+                            <User size={14} className="text-violet-300/80" />
+                            Amis
+                          </span>
+                          <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-sky-200/90">
+                            online
+                          </span>
                         </p>
-                        <p className="mt-1 text-sm text-white/20">
-                          {friends.length > 0 ? `${friends.length} contact${friends.length > 1 ? 's' : ''}` : 'Aucun ami'}
+                        <p className="mt-2 text-xl font-medium text-white">
+                          {friends.length > 0 ? `${friends.length}` : '0'}
+                        </p>
+                        <p className="mt-1 text-xs text-white/35">
+                          {friends.length > 0 ? `contact${friends.length > 1 ? 's' : ''}` : 'Aucun ami'}
                         </p>
                       </div>
                     </div>

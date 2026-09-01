@@ -252,7 +252,10 @@ export default function ProfileModal({
   const isOwnProfile = Boolean(profileUserId && currentUserId && String(profileUserId) === String(currentUserId));
   const isOfficialProfile = Boolean(profileTarget?.isOfficial);
   const isFriend = profileTarget?.isFriend || false;
-  const isBlocked = profileTarget?.isBlocked || false;
+  const isBlockedByMe = profileTarget?.isBlockedByMe || false;
+  const isBlockedByThem = profileTarget?.isBlockedByThem || false;
+  const isBlocked = profileTarget?.isBlocked || isBlockedByMe || isBlockedByThem;
+  const isInteractionBlocked = isBlocked && !isBlockedByMe;
   
   const [editingField, setEditingField] = useState(null);
   const [bannerFailed, setBannerFailed] = useState(false);
@@ -333,9 +336,12 @@ export default function ProfileModal({
       && serverMembers.some((member) => String(member.id || member._id) === String(currentUserId))
       && serverMembers.some((member) => String(member.id || member._id) === String(profileUserId)),
   );
-  const commonServers = currentServerHasBothUsers && !commonData.servers.some((server) => String(server.id || server._id) === String(serverContext.id))
-    ? [{ ...serverContext, memberCount: serverMembers.length }, ...commonData.servers]
-    : commonData.servers;
+  const commonServers = (() => {
+    const baseServers = commonData.servers || [];
+    if (!currentServerHasBothUsers) return baseServers;
+    const alreadyHasContext = baseServers.some((server) => String(server.id || server._id) === String(serverContext.id));
+    return alreadyHasContext ? baseServers : [{ ...serverContext, memberCount: serverMembers.length }, ...baseServers];
+  })();
   
   const saveField = async (field) => {
     setEditingField(null);
@@ -352,6 +358,21 @@ export default function ProfileModal({
     setIsActionMenuOpen(false);
     const result = await action?.(profileTarget?.id || profileTarget?._id);
     setActionMessage(result || successMessage);
+  };
+
+  const handleSpotifyConnect = async () => {
+    try {
+      const response = await fetch(`${API_URL}/auth/spotify/login`);
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setActionMessage('Erreur lors de la connexion à Spotify.');
+      }
+    } catch (error) {
+      console.error('Spotify login error:', error);
+      setActionMessage('Erreur lors de la connexion à Spotify.');
+    }
   };
   
   const submitReport = async (event) => {
@@ -743,7 +764,17 @@ export default function ProfileModal({
                             border: '1px solid #2a2a2a',
                           }}
                         >
-                          {!isFriend && (
+                          {isBlockedByMe && (
+                            <button 
+                              type="button" 
+                              onClick={() => runAction(() => onUnblockUser?.(profileUserId), 'Utilisateur débloqué.')} 
+                              className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-emerald-400 hover:bg-emerald-500/10"
+                            >
+                              <Unlock size={16} /> Débloquer
+                            </button>
+                          )}
+
+                          {!isBlockedByMe && !isBlockedByThem && !isFriend && (
                             <button 
                               type="button" 
                               onClick={() => runAction(() => onAddFriend?.(profileTarget), 'Demande envoyée.')} 
@@ -753,7 +784,7 @@ export default function ProfileModal({
                             </button>
                           )}
                           
-                          {isFriend && (
+                          {!isBlockedByMe && !isBlockedByThem && isFriend && (
                             <button 
                               type="button" 
                               onClick={() => runAction(() => onRemoveFriend?.(profileUserId), 'Ami supprimé.')} 
@@ -763,13 +794,15 @@ export default function ProfileModal({
                             </button>
                           )}
                           
-                          <button 
-                            type="button" 
-                            onClick={() => runAction(() => onBlockUser?.(profileUserId), 'Utilisateur bloqué.')} 
-                            className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10"
-                          >
-                            <Ban size={16} /> Bloquer
-                          </button>
+                          {!isBlockedByMe && !isBlockedByThem && (
+                            <button 
+                              type="button" 
+                              onClick={() => runAction(() => onBlockUser?.(profileUserId), 'Utilisateur bloqué.')} 
+                              className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10"
+                            >
+                              <Ban size={16} /> Bloquer
+                            </button>
+                          )}
                           
                           <button 
                             type="button" 
@@ -800,7 +833,27 @@ export default function ProfileModal({
                     Envoyer un message
                   </button>
                   
-                  {!isFriend ? (
+                  {isBlockedByMe ? (
+                    <button 
+                      type="button" 
+                      onClick={() => runAction(() => onUnblockUser?.(profileUserId), 'Utilisateur débloqué.')} 
+                      className="rounded-lg bg-emerald-500/15 px-4 py-3 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 border border-emerald-500/30"
+                      title="Débloquer"
+                    >
+                      <Unlock size={16} className="inline mr-1" />
+                      Débloquer
+                    </button>
+                  ) : isBlockedByThem ? (
+                    <button 
+                      type="button" 
+                      disabled
+                      className="rounded-lg bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 opacity-80 border border-red-500/30"
+                      title="Interaction bloquée"
+                    >
+                      <Ban size={16} className="inline mr-1" />
+                      Bloqué
+                    </button>
+                  ) : !isFriend ? (
                     <button 
                       type="button" 
                       onClick={() => runAction(() => onAddFriend?.(profileTarget), 'Demande envoyée.')} 
@@ -847,6 +900,15 @@ export default function ProfileModal({
                     title="Changer la plaque nominative"
                   >
                     <Type size={18} />
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={handleSpotifyConnect} 
+                    className="rounded-lg bg-green-600/20 px-4 py-3 text-sm font-semibold text-green-400 transition hover:bg-green-600/30 border border-green-700"
+                    title="Connecter Spotify"
+                  >
+                    <Music size={16} className="inline mr-2" />
+                    Spotify
                   </button>
                 </>
               ) : null}
@@ -931,7 +993,7 @@ export default function ProfileModal({
         </main>
         
         {/* PARTIE DROITE */}
-        {!isOwnProfile && !isOfficialProfile && !isBlocked && (
+        {!isOwnProfile && !isOfficialProfile && !isInteractionBlocked && (
           <div 
             className="flex flex-col"
             style={{ 
