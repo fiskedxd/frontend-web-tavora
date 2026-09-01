@@ -1855,7 +1855,11 @@ useEffect(() => {
         const spotifyData = spotifyResponse.ok ? await readJsonResponse(spotifyResponse) : { activity: null };
 
         if (spotifyData?.activity) {
-          return { ...spotifyData.activity, source: 'spotify' };
+          return { ...spotifyData.activity, connected: true, source: 'spotify' };
+        }
+
+        if (spotifyData?.connected) {
+          return { connected: true, source: 'spotify', title: 'Spotify connecté', artist: 'Aucune lecture active' };
         }
 
         return audioData?.activity || null;

@@ -62,9 +62,24 @@ function SpotifyCallbackPage() {
     const params = new URLSearchParams(location.search);
     const code = params.get('code');
     const state = params.get('state');
-    const currentUserId = user?.id || user?._id || JSON.parse(localStorage.getItem('tavora_user') || 'null')?.id || JSON.parse(localStorage.getItem('tavora_user') || 'null')?._id;
 
-    if (!code || !currentUserId) {
+    const storedUser = (() => {
+      try {
+        return JSON.parse(localStorage.getItem('tavora_user') || 'null');
+      } catch {
+        return null;
+      }
+    })();
+
+    const currentUserId = user?.id || user?._id || storedUser?.id || storedUser?._id || sessionStorage.getItem('pendingSpotifyUserId');
+
+    if (!code) {
+      navigate('/home', { replace: true });
+      return;
+    }
+
+    if (!currentUserId) {
+      sessionStorage.removeItem('pendingSpotifyUserId');
       navigate('/home', { replace: true });
       return;
     }
@@ -85,9 +100,11 @@ function SpotifyCallbackPage() {
           throw new Error(result?.message || 'Erreur Spotify');
         }
 
+        sessionStorage.removeItem('pendingSpotifyUserId');
         navigate('/home', { replace: true });
       } catch (error) {
         console.error('Spotify callback error:', error);
+        sessionStorage.removeItem('pendingSpotifyUserId');
         navigate('/home', { replace: true });
       }
     };
