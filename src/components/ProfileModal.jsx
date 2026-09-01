@@ -728,18 +728,17 @@ export default function ProfileModal({
                                 <span 
                                   className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-left"
                                   style={{
-                                    backgroundImage: `url(${targetNameplate.url})`,
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center',
-                                    backgroundRepeat: 'no-repeat',
-                                    fontSize: '1.5rem',
-                                    fontWeight: 'bold',
-                                    color: targetNameplate.color,
-                                    textShadow: targetNameplate.glow !== 'none' ? targetNameplate.glow : undefined,
-                                    minHeight: '50px',
-                                    width: '80%',
-                                    maxWidth: '100%',
-                                    paddingLeft: '24px',
+backgroundImage: `url(${targetNameplate.url})`,
+backgroundSize: 'cover',
+backgroundPosition: 'center',
+backgroundRepeat: 'no-repeat',
+fontSize: '1.5rem',
+fontWeight: 'bold',
+color: targetNameplate.color,
+textShadow: targetNameplate.glow !== 'none' ? targetNameplate.glow : undefined,
+minHeight: '50px',
+width: '250px', // ← Largeur fixe
+paddingLeft: '24px',
                                   }}
                                 >
                                   <span className="inline-flex items-center">{displayName}</span>
