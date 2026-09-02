@@ -23,7 +23,7 @@ import {
   Mic, MicOff, Video, VideoOff, Radio
 } from 'lucide-react';
 
-import { API_URL, uploadFile, uploadMessageAttachment } from '../utils/api';
+import { API_URL, uploadFile } from '../utils/api';
 
 import GlobalTopBar from '../components/GlobalTopBar';
 
