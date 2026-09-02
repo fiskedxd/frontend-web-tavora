@@ -4,7 +4,8 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import hljs from 'highlight.js';
-import { Check, Clipboard, Eye, EyeOff, Quote, Type, X } from 'lucide-react';
+import { Check, Clipboard, Eye, EyeOff, Paperclip, Quote, Type, X } from 'lucide-react';
+import { uploadMessageAttachment } from '../utils/api';
 import 'highlight.js/styles/github-dark.css';
 
 const sanitizeSchema = {
@@ -227,6 +228,8 @@ export const MessageComposer = ({
   children,
   serverMembers = [],
   currentUserId = null 
+  , getAuthHeaders
+  , attachmentContext = {}
 }) => {
   const textareaRef = useRef(null);
   const [preview, setPreview] = useState(false);
@@ -236,6 +239,9 @@ export const MessageComposer = ({
   const [mentionResults, setMentionResults] = useState([]);
   const [showMentions, setShowMentions] = useState(false);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const [attachment, setAttachment] = useState(null);
+  const [uploadError, setUploadError] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const fencedCode = value.match(/```([^\n]*)\n?([\s\S]*?)(?:```|$)/);
   const detectedCodeLanguage = fencedCode ? (languageAliases[fencedCode[1].trim().toLowerCase()] || fencedCode[1].trim().toLowerCase() || detectLanguage(fencedCode[2])) : '';
 
@@ -299,7 +305,22 @@ export const MessageComposer = ({
       onChange(''); 
       return; 
     } 
-    onSubmit(event); 
+    Promise.resolve(onSubmit(event, attachment)).then(() => setAttachment(null));
+  };
+
+  const handleFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setUploadError('');
+    setIsUploading(true);
+    try {
+      setAttachment(await uploadMessageAttachment(file, { ...attachmentContext, getAuthHeaders }));
+    } catch (error) {
+      setUploadError(error.message || 'Upload impossible.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -348,7 +369,7 @@ export const MessageComposer = ({
     }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!isSending && value.trim()) {
+      if (!isSending && (value.trim() || attachment)) {
         e.currentTarget.form?.requestSubmit();
       }
       return;
@@ -437,6 +458,10 @@ export const MessageComposer = ({
       )}
       
       <div className="mt-2 flex flex-wrap items-center gap-1">
+        <label title="Importer un fichier" className={`cursor-pointer rounded-lg p-2 text-white/50 hover:bg-white/10 hover:text-white ${isUploading ? 'pointer-events-none opacity-40' : ''}`}>
+          <Paperclip size={16} />
+          <input type="file" accept="image/*,video/*,audio/*,text/*,.pdf,.zip" onChange={handleFileChange} className="sr-only" disabled={isUploading} />
+        </label>
         <button type="button" title="Formatage" onClick={() => setMenuOpen((open) => !open)} className="rounded-lg p-2 text-white/50 hover:bg-white/10 hover:text-white">
           <Type size={16} />
         </button>
@@ -461,6 +486,9 @@ export const MessageComposer = ({
           {fencedCode && detectedCodeLanguage ? `Détecté : ${languageLabels[detectedCodeLanguage] || detectedCodeLanguage}` : 'Markdown actif'}
         </span>
       </div>
+      {attachment ? <div className="mt-2 flex items-center justify-between rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-2 py-1.5 text-xs text-cyan-100"><span className="truncate">{attachment.filename}</span><button type="button" title="Retirer le fichier" onClick={() => setAttachment(null)} className="px-2 text-white/50 hover:text-white">×</button></div> : null}
+      {isUploading ? <p className="mt-1 text-[11px] text-white/40">Envoi du fichier...</p> : null}
+      {uploadError ? <p className="mt-1 text-[11px] text-rose-300">{uploadError}</p> : null}
     </form>
   );
 };

@@ -12,6 +12,20 @@ export const uploadFile = async (file, { folder = 'uploads', getAuthHeaders } = 
   return result.url;
 };
 
+export const uploadMessageAttachment = async (file, { serverId, channelId, userId, getAuthHeaders } = {}) => {
+  const data = new FormData();
+  data.append('file', file);
+  if (serverId) data.append('serverId', serverId);
+  if (channelId) data.append('channelId', channelId);
+  if (userId) data.append('userId', userId);
+  const headers = getAuthHeaders ? getAuthHeaders() : {};
+  delete headers['Content-Type'];
+  const response = await fetch(`${API_URL}/api/social/message-attachments`, { method: 'POST', headers, body: data });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.message || 'Upload impossible.');
+  return result.attachment;
+};
+
 export const resolveTrackUrl = (track) => {
   if (!track) return '';
   // ❌ ON IGNORE track.url car il est mal formé par le backend

@@ -23,7 +23,7 @@ import {
   Mic, MicOff, Video, VideoOff, Radio
 } from 'lucide-react';
 
-import { API_URL, uploadFile } from '../utils/api';
+import { API_URL, uploadFile, uploadMessageAttachment } from '../utils/api';
 
 import GlobalTopBar from '../components/GlobalTopBar';
 
@@ -654,18 +654,28 @@ const OfficialWelcomeMessage = ({ content, user, navigate }) => {
   );
 };
 
-const MessageContent = ({ content, getAuthHeaders, onJoin, avatarTimestamp, user, navigate }) => {
+const MessageAttachment = ({ attachment }) => {
+  if (!attachment?.url) return null;
+  const type = attachment.contentType || '';
+  if (type.startsWith('image/')) return <a href={attachment.url} target="_blank" rel="noreferrer" download={attachment.filename}><img src={attachment.url} alt={attachment.filename || 'Image jointe'} className="mt-2 max-h-80 max-w-full rounded-lg object-contain" /></a>;
+  if (type.startsWith('video/')) return <div className="mt-2 max-w-xl"><video controls preload="metadata" className="max-h-80 max-w-full rounded-lg"><source src={attachment.url} type={type} /></video><a href={attachment.url} download={attachment.filename} className="mt-1 block text-xs text-cyan-200 hover:underline">Télécharger {attachment.filename}</a></div>;
+  if (type.startsWith('audio/')) return <div className="mt-2 max-w-xl"><audio controls preload="metadata" className="w-full"><source src={attachment.url} type={type} /></audio><a href={attachment.url} download={attachment.filename} className="mt-1 block text-xs text-cyan-200 hover:underline">Télécharger {attachment.filename}</a></div>;
+  return <a href={attachment.url} target="_blank" rel="noreferrer" download={attachment.filename} className="mt-2 flex max-w-md items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-cyan-100 hover:bg-white/10"><span className="truncate">{attachment.filename || 'Fichier joint'}</span><span className="shrink-0 text-xs text-white/40">Télécharger</span></a>;
+};
+
+const MessageContent = ({ content, attachment, getAuthHeaders, onJoin, avatarTimestamp, user, navigate }) => {
   const welcomePayload = parseWelcomePayload(content);
   if (welcomePayload) {
     return <OfficialWelcomeMessage content={content} user={user} navigate={navigate} />;
   }
 
   const inviteUrl = extractInviteUrl(content);
-  if (!inviteUrl) return <MessageMarkdown content={content} />;
+  if (!inviteUrl) return <><MessageAttachment attachment={attachment} />{content ? <MessageMarkdown content={content} /> : null}</>;
 
   const [before, after] = String(content).split(inviteUrl);
   return (
     <div className="mt-3">
+      {attachment ? <MessageAttachment attachment={attachment} /> : null}
       {before.trim() ? <MessageMarkdown content={before.trim()} /> : null}
       <ServerInviteCard inviteUrl={inviteUrl} getAuthHeaders={getAuthHeaders} onJoin={onJoin} avatarTimestamp={avatarTimestamp} />      {after.trim() ? <MessageMarkdown content={after.trim()} /> : null}
     </div>
@@ -1483,10 +1493,10 @@ useEffect(() => {
   };
 }, [params.userId]); // ← Enlève getAuthHeaders
 
-  const handleSendPrivateMessage = async (event) => {
+  const handleSendPrivateMessage = async (event, attachment) => {
     event.preventDefault();
     if (sendingPrivateRef.current || isSendingPrivateMessage) return;
-    if (!privateDraft.trim() || !params.userId) return;
+    if ((!privateDraft.trim() && !attachment) || !params.userId) return;
     sendingPrivateRef.current = true;
     const content = privateDraft.trim();
     if (privateChatUser?.isOfficial && content.startsWith('/send ')) {
@@ -1514,7 +1524,7 @@ useEffect(() => {
       return;
     }
     const temporaryId = `pending-private-${Date.now()}`;
-    const optimisticMessage = { _id: temporaryId, id: temporaryId, isPending: true, authorId: user?._id || user?.id, authorDisplayName: user?.displayName || user?.username || 'Utilisateur', authorUsername: user?.username || 'user', authorAvatarUrl: user?.avatarUrl || '', content, createdAt: new Date().toISOString() };
+    const optimisticMessage = { _id: temporaryId, id: temporaryId, isPending: true, authorId: user?._id || user?.id, authorDisplayName: user?.displayName || user?.username || 'Utilisateur', authorUsername: user?.username || 'user', authorAvatarUrl: user?.avatarUrl || '', content, attachment, createdAt: new Date().toISOString() };
     forcePrivateScrollRef.current = true;
     sendingPrivateRef.current = true;
     setPrivateMessages((prev) => mergeMessages(prev, [optimisticMessage]));
@@ -1524,7 +1534,7 @@ useEffect(() => {
       const response = await fetch(`${API_URL}/api/social/messages/private/${params.userId}`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, attachment }),
       });
       const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.message || 'Impossible d’envoyer le message privé.');
@@ -1880,12 +1890,12 @@ useEffect(() => {
     return 'Mute non disponible pour le moment.';
   };
 
-  const handleSendMessage = async (event) => {
+  const handleSendMessage = async (event, attachment) => {
     event.preventDefault();
-    if (!draftMessage.trim() || !selectedServer?.id || !activeChannelId || activeChannel?.type !== 'text') return;
+    if ((!draftMessage.trim() && !attachment) || !selectedServer?.id || !activeChannelId || activeChannel?.type !== 'text') return;
     const content = draftMessage.trim();
     const temporaryId = `pending-channel-${Date.now()}`;
-    const optimisticMessage = { _id: temporaryId, id: temporaryId, isPending: true, authorId: user?._id || user?.id, authorDisplayName: user?.displayName || user?.username || 'Utilisateur', authorUsername: user?.username || 'user', authorAvatarUrl: user?.avatarUrl || '', content, createdAt: new Date().toISOString() };
+    const optimisticMessage = { _id: temporaryId, id: temporaryId, isPending: true, authorId: user?._id || user?.id, authorDisplayName: user?.displayName || user?.username || 'Utilisateur', authorUsername: user?.username || 'user', authorAvatarUrl: user?.avatarUrl || '', content, attachment, createdAt: new Date().toISOString() };
     forceChannelScrollRef.current = true;
     setChannelMessages((prev) => mergeMessages(prev, [optimisticMessage]));
     setDraftMessage('');
@@ -1894,7 +1904,7 @@ useEffect(() => {
       const response = await fetch(`${API_URL}/api/social/servers/${selectedServer.id}/messages/${activeChannelId}`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, attachment }),
       });
       const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.message || 'Impossible d’envoyer le message.');
@@ -2720,7 +2730,7 @@ useEffect(() => {
               <button type="button" onClick={editMessage} className="text-xs text-cyan-200">Enregistrer</button>
             </div>
           ) : (
-            <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} user={user} navigate={navigate} />
+            <MessageContent content={msg.content} attachment={msg.attachment} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} user={user} navigate={navigate} />
           )}
           
           {msg.moderationAlert && user?.canModerate ? (
@@ -2745,7 +2755,7 @@ useEffect(() => {
                         Nouveaux messages ↓
                       </button>
                     ) : null}
-                    <MessageComposer value={privateDraft} onChange={(nextValue) => { setPrivateDraft(nextValue); setCommandIndex(0); }} onSubmit={handleSendPrivateMessage} isSending={isSendingPrivateMessage} placeholder={`Écrire à ${privateChatUser?.displayName || privateChatUser?.username || 'cet utilisateur'}...`} className="mx-6 mb-5 mt-3" onKeyDown={(event) => { if (commandSuggestions.length && ['ArrowDown', 'ArrowUp', 'Tab'].includes(event.key)) { event.preventDefault(); if (event.key === 'Tab') chooseOfficialCommand(commandSuggestions[commandIndex]); else setCommandIndex((current) => (current + (event.key === 'ArrowDown' ? 1 : -1) + commandSuggestions.length) % commandSuggestions.length); } }}>
+                    <MessageComposer value={privateDraft} onChange={(nextValue) => { setPrivateDraft(nextValue); setCommandIndex(0); }} onSubmit={handleSendPrivateMessage} isSending={isSendingPrivateMessage} getAuthHeaders={getAuthHeaders} attachmentContext={{ userId: params.userId }} placeholder={`Écrire à ${privateChatUser?.displayName || privateChatUser?.username || 'cet utilisateur'}...`} className="mx-6 mb-5 mt-3" onKeyDown={(event) => { if (commandSuggestions.length && ['ArrowDown', 'ArrowUp', 'Tab'].includes(event.key)) { event.preventDefault(); if (event.key === 'Tab') chooseOfficialCommand(commandSuggestions[commandIndex]); else setCommandIndex((current) => (current + (event.key === 'ArrowDown' ? 1 : -1) + commandSuggestions.length) % commandSuggestions.length); } }}>
                       {commandSuggestions.length ? <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-20 rounded-xl border border-white/10 bg-[#111118] p-1 shadow-2xl">{commandSuggestions.map((command, index) => <button key={command.name} type="button" onClick={() => chooseOfficialCommand(command)} className={`flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left ${index === commandIndex ? 'bg-cyan-200/10 text-white' : 'text-white/70 hover:bg-white/[0.06]'}`}><span className="font-mono text-sm text-cyan-100">{command.name}</span><span className="text-xs text-white/45">{command.description}</span></button>)}</div> : null}
                     </MessageComposer>
                 </div>
@@ -2894,7 +2904,7 @@ useEffect(() => {
               <button type="button" onClick={editMessage} className="text-xs text-cyan-200">Enregistrer</button>
             </div>
           ) : (
-            <MessageContent content={msg.content} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} avatarTimestamp={avatarTimestamp} user={user} navigate={navigate} />
+            <MessageContent content={msg.content} attachment={msg.attachment} getAuthHeaders={getAuthHeaders} onJoin={handleJoinInvite} avatarTimestamp={avatarTimestamp} user={user} navigate={navigate} />
           )}
         </div>
       </div>
@@ -2913,7 +2923,7 @@ useEffect(() => {
                             Nouveaux messages ↓
                           </button>
                         ) : null}
-                        <MessageComposer value={draftMessage} onChange={setDraftMessage} onSubmit={handleSendMessage} isSending={isSendingMessage} placeholder="Écrire un message..." className="mx-6 mb-5 mt-3" />
+                        <MessageComposer value={draftMessage} onChange={setDraftMessage} onSubmit={handleSendMessage} isSending={isSendingMessage} getAuthHeaders={getAuthHeaders} attachmentContext={{ serverId: selectedServer.id, channelId: activeChannelId }} placeholder="Écrire un message..." className="mx-6 mb-5 mt-3" />
                       </div>
                     )}
                   </div>
