@@ -20,7 +20,7 @@ import {
   Languages, Gamepad2, Code, LogIn,
   Copy, PenSquare, UserCheck, Sparkles,
   Crown, CreditCard, Gift, HelpCircle, ChevronUp, ChevronDown, ChevronLeft,
-  Mic, MicOff, Video, VideoOff, Radio
+  Mic, MicOff, Video, VideoOff, Radio, Play, Pause, Download, FileAudio, FileVideo
 } from 'lucide-react';
 
 import { API_URL, uploadFile } from '../utils/api';
@@ -654,13 +654,77 @@ const OfficialWelcomeMessage = ({ content, user, navigate }) => {
   );
 };
 
+const formatMediaTime = (seconds) => {
+  if (!Number.isFinite(seconds)) return '0:00';
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${remainingSeconds}`;
+};
+
+const getAttachmentDownloadUrl = (attachment) => {
+  if (!attachment?.key) return attachment?.url || '#';
+  const filename = encodeURIComponent(attachment.filename || attachment.key.split('/').pop() || 'fichier');
+  return `${API_URL}/api/files/${attachment.key}?download=1&filename=${filename}`;
+};
+
+const MessageMediaPlayer = ({ attachment, kind }) => {
+  const mediaRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const isVideo = kind === 'video';
+
+  const togglePlayback = async () => {
+    if (!mediaRef.current) return;
+    if (isPlaying) {
+      mediaRef.current.pause();
+      setIsPlaying(false);
+      return;
+    }
+    try {
+      await mediaRef.current.play();
+      setIsPlaying(true);
+    } catch {
+      setIsPlaying(false);
+    }
+  };
+
+  const seek = (event) => {
+    if (!mediaRef.current || !duration) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    mediaRef.current.currentTime = ((event.clientX - bounds.left) / bounds.width) * duration;
+  };
+
+  return (
+    <div className={`mt-2 overflow-hidden rounded-2xl border border-cyan-200/15 bg-[#101722] shadow-[0_12px_35px_rgba(0,0,0,0.22)] ${isVideo ? 'max-w-xl' : 'max-w-md'}`}>
+      <div className={`relative ${isVideo ? 'bg-black' : ''}`}>
+        {isVideo ? <video ref={mediaRef} src={attachment.url} preload="metadata" className="max-h-80 w-full object-contain" onTimeUpdate={() => setCurrentTime(mediaRef.current?.currentTime || 0)} onLoadedMetadata={() => setDuration(mediaRef.current?.duration || 0)} onEnded={() => setIsPlaying(false)} /> : <audio ref={mediaRef} src={attachment.url} preload="metadata" className="hidden" onTimeUpdate={() => setCurrentTime(mediaRef.current?.currentTime || 0)} onLoadedMetadata={() => setDuration(mediaRef.current?.duration || 0)} onEnded={() => setIsPlaying(false)} />}
+        {isVideo && !isPlaying ? <button type="button" onClick={togglePlayback} aria-label="Lire la vidéo" className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-cyan-200 text-slate-950 shadow-[0_0_28px_rgba(103,232,249,0.45)] transition hover:scale-105"><Play size={23} fill="currentColor" /></button> : null}
+      </div>
+      <div className="p-3">
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={togglePlayback} aria-label={isPlaying ? 'Mettre en pause' : 'Lire'} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-slate-950 transition hover:bg-cyan-100">{isPlaying ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}</button>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-white">{attachment.filename || (isVideo ? 'Vidéo' : 'Audio')}</p>
+            <div className="mt-2 h-1.5 cursor-pointer rounded-full bg-white/10" onClick={seek} role="slider" aria-label="Progression de la lecture" aria-valuemin="0" aria-valuemax={duration || 0} aria-valuenow={currentTime}>
+              <div className="h-full rounded-full bg-cyan-200 transition-[width]" style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }} />
+            </div>
+          </div>
+          <span className="shrink-0 font-mono text-[11px] text-white/45">{formatMediaTime(currentTime)} / {formatMediaTime(duration)}</span>
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-cyan-200/45"><span className="inline-flex items-center gap-1">{isVideo ? <FileVideo size={12} /> : <FileAudio size={12} />}{isVideo ? 'Vidéo' : 'Audio'}</span><a href={getAttachmentDownloadUrl(attachment)} download={attachment.filename} title="Télécharger sur l’appareil" className="rounded-md p-1.5 text-white/45 transition hover:bg-white/10 hover:text-cyan-100"><Download size={14} /></a></div>
+      </div>
+    </div>
+  );
+};
+
 const MessageAttachment = ({ attachment }) => {
   if (!attachment?.url) return null;
   const type = attachment.contentType || '';
-  if (type.startsWith('image/')) return <a href={attachment.url} target="_blank" rel="noreferrer" download={attachment.filename}><img src={attachment.url} alt={attachment.filename || 'Image jointe'} className="mt-2 max-h-80 max-w-full rounded-lg object-contain" /></a>;
-  if (type.startsWith('video/')) return <div className="mt-2 max-w-xl"><video controls preload="metadata" className="max-h-80 max-w-full rounded-lg"><source src={attachment.url} type={type} /></video><a href={attachment.url} download={attachment.filename} className="mt-1 block text-xs text-cyan-200 hover:underline">Télécharger {attachment.filename}</a></div>;
-  if (type.startsWith('audio/')) return <div className="mt-2 max-w-xl"><audio controls preload="metadata" className="w-full"><source src={attachment.url} type={type} /></audio><a href={attachment.url} download={attachment.filename} className="mt-1 block text-xs text-cyan-200 hover:underline">Télécharger {attachment.filename}</a></div>;
-  return <a href={attachment.url} target="_blank" rel="noreferrer" download={attachment.filename} className="mt-2 flex max-w-md items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-cyan-100 hover:bg-white/10"><span className="truncate">{attachment.filename || 'Fichier joint'}</span><span className="shrink-0 text-xs text-white/40">Télécharger</span></a>;
+  if (type.startsWith('image/')) return <div className="relative mt-2 w-fit"><img src={attachment.url} alt={attachment.filename || 'Image jointe'} className="max-h-80 max-w-full rounded-lg object-contain" /><a href={getAttachmentDownloadUrl(attachment)} download={attachment.filename} title="Télécharger l’image" className="absolute bottom-2 right-2 rounded-lg bg-slate-950/80 p-2 text-white/70 backdrop-blur transition hover:bg-cyan-200 hover:text-slate-950"><Download size={15} /></a></div>;
+  if (type.startsWith('video/')) return <MessageMediaPlayer attachment={attachment} kind="video" />;
+  if (type.startsWith('audio/')) return <MessageMediaPlayer attachment={attachment} kind="audio" />;
+  return <a href={getAttachmentDownloadUrl(attachment)} download={attachment.filename} className="mt-2 flex max-w-md items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-cyan-100 hover:bg-white/10"><span className="truncate">{attachment.filename || 'Fichier joint'}</span><span className="shrink-0 text-xs text-white/40">Télécharger</span></a>;
 };
 
 const MessageContent = ({ content, attachment, getAuthHeaders, onJoin, avatarTimestamp, user, navigate }) => {
