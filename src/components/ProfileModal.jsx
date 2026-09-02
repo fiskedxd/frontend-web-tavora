@@ -5,7 +5,7 @@ import {
   Heart, Share2, Sparkles, Music, Gamepad2,
   Calendar, Clock, MapPin, Link as LinkIcon, Check, Unlock,
   Shield, Star, Crown, BadgeCheck, Activity, Award, Globe,
-  Type
+  Type, Plus, ShieldAlert, UserCog, VolumeX
 } from 'lucide-react';
 import ProfileBadges from './ProfileBadges';
 import { API_URL } from '../utils/api';
@@ -244,7 +244,12 @@ export default function ProfileModal({
   serverContext,
   serverMembers = [],
   serverRoles = [],
+  serverPermissions = [],
+  isServerOwner = false,
   onToggleMemberRole,
+  onKickMember,
+  onBanMember,
+  onMuteMember,
   currentUserId,
   getAuthHeaders,
 }) {
@@ -256,8 +261,15 @@ export default function ProfileModal({
   const isBlockedByThem = profileTarget?.isBlockedByThem || false;
   const isBlocked = profileTarget?.isBlocked || isBlockedByMe || isBlockedByThem;
   const isInteractionBlocked = isBlocked && !isBlockedByMe;
-  
+  const currentMember = serverMembers.find((member) => String(member.id || member._id) === String(profileUserId)) || null;
+  const canManageServer = Boolean(isServerOwner || serverPermissions.includes('ADMINISTRATOR') || serverPermissions.includes('MANAGE_SERVER'));
+  const canManageRoles = Boolean(isServerOwner || serverPermissions.includes('ADMINISTRATOR') || serverPermissions.includes('MANAGE_ROLES'));
+  const canKickMembers = Boolean(isServerOwner || serverPermissions.includes('ADMINISTRATOR') || serverPermissions.includes('KICK_MEMBERS'));
+  const canBanMembers = Boolean(isServerOwner || serverPermissions.includes('ADMINISTRATOR') || serverPermissions.includes('BAN_MEMBERS'));
+  const canMuteMembers = Boolean(isServerOwner || serverPermissions.includes('ADMINISTRATOR') || serverPermissions.includes('MUTE_MEMBERS'));
+  const canModerateMember = Boolean(serverContext?.id && !isOwnProfile && !isOfficialProfile && (canManageRoles || canKickMembers || canBanMembers || canMuteMembers));
   const [editingField, setEditingField] = useState(null);
+  const [serverActionMenuOpen, setServerActionMenuOpen] = useState(false);
   const [bannerFailed, setBannerFailed] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
@@ -361,6 +373,20 @@ export default function ProfileModal({
   const runAction = async (action, successMessage) => {
     setIsActionMenuOpen(false);
     const result = await action?.(profileTarget?.id || profileTarget?._id);
+    setActionMessage(result || successMessage);
+  };
+
+  const handleRoleToggle = async (role) => {
+    if (!profileUserId || !onToggleMemberRole || !role?._id) return;
+    setServerActionMenuOpen(false);
+    const result = await onToggleMemberRole(profileUserId, role);
+    if (result) setActionMessage(result);
+  };
+
+  const handleServerAction = async (action, successMessage) => {
+    if (!profileUserId) return;
+    setServerActionMenuOpen(false);
+    const result = await action?.(profileUserId);
     setActionMessage(result || successMessage);
   };
 
@@ -771,14 +797,72 @@ paddingLeft: '24px',
                 
                 {!isOwnProfile && !isOfficialProfile && (
                   <div className="relative shrink-0">
-                    <button 
-                      type="button" 
-                      onClick={() => setIsActionMenuOpen((open) => !open)} 
-                      className="rounded-full p-2 text-gray-500 transition hover:bg-white/10 hover:text-white"
-                      aria-label="Plus d'actions"
-                    >
-                      <MoreHorizontal size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {canModerateMember && (
+                        <button
+                          type="button"
+                          onClick={() => setServerActionMenuOpen((open) => !open)}
+                          className="rounded-full border border-white/10 bg-white/5 p-2 text-gray-200 transition hover:bg-white/10 hover:text-white"
+                          aria-label="Actions de modération"
+                          title="Actions serveur"
+                        >
+                          <Plus size={18} />
+                        </button>
+                      )}
+                      <button 
+                        type="button" 
+                        onClick={() => setIsActionMenuOpen((open) => !open)} 
+                        className="rounded-full p-2 text-gray-500 transition hover:bg-white/10 hover:text-white"
+                        aria-label="Plus d'actions"
+                      >
+                        <MoreHorizontal size={20} />
+                      </button>
+                    </div>
+                    
+                    {serverActionMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setServerActionMenuOpen(false)} />
+                        <div className="absolute right-0 z-20 mt-1 overflow-hidden rounded-lg p-1 shadow-xl" style={{ top: 'calc(100% + 4px)', background: '#111111', width: '240px', border: '1px solid #2a2a2a' }}>
+                          {canManageRoles && (serverRoles || []).length > 0 && (
+                            <div className="border-b border-gray-800 pb-1">
+                              <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Rôles</div>
+                              {(serverRoles || []).filter((role) => !role.isEveryone && !role.deleted).map((role) => {
+                                const isAssigned = (currentMember?.roles || []).some((item) => String(item._id) === String(role._id));
+                                return (
+                                  <button
+                                    key={role._id}
+                                    type="button"
+                                    onClick={() => handleRoleToggle(role)}
+                                    className="flex w-full items-center justify-between gap-2 rounded px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                                  >
+                                    <span className="flex items-center gap-2">
+                                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: role.color || '#ffffff' }} />
+                                      {role.name}
+                                    </span>
+                                    <span className="text-xs text-gray-400">{isAssigned ? 'Retirer' : 'Ajouter'}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {canMuteMembers && (
+                            <button type="button" onClick={() => handleServerAction(() => onMuteMember?.(profileUserId), 'Mute appliqué.')} className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-white hover:bg-white/10">
+                              <VolumeX size={16} /> Mute
+                            </button>
+                          )}
+                          {canKickMembers && (
+                            <button type="button" onClick={() => handleServerAction(() => onKickMember?.(profileUserId), 'Membre expulsé.')} className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-amber-300 hover:bg-amber-500/10">
+                              <ShieldAlert size={16} /> Exclure
+                            </button>
+                          )}
+                          {canBanMembers && (
+                            <button type="button" onClick={() => handleServerAction(() => onBanMember?.(profileUserId), 'Membre banni.')} className="flex w-full items-center gap-2.5 rounded px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10">
+                              <Ban size={16} /> Bannir
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
                     
                     {isActionMenuOpen && (
                       <>

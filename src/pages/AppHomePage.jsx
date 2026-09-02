@@ -1874,6 +1874,12 @@ useEffect(() => {
     }
   };
 
+  const handleMuteMember = async (memberId) => {
+    if (!selectedServer?.id || !memberId) return 'Aucune action de mute disponible pour ce membre.';
+    setServerSettingsMessage('Le mute des membres n’est pas encore branché sur la version active.');
+    return 'Mute non disponible pour le moment.';
+  };
+
   const handleSendMessage = async (event) => {
     event.preventDefault();
     if (!draftMessage.trim() || !selectedServer?.id || !activeChannelId || activeChannel?.type !== 'text') return;
@@ -3864,7 +3870,12 @@ useEffect(() => {
         onReport={reportUser}
         serverContext={selectedServer}
         serverRoles={serverRoles}
+        serverPermissions={serverPermissions}
+        isServerOwner={isServerOwner}
         onToggleMemberRole={handleToggleMemberRole}
+        onKickMember={handleKickMember}
+        onBanMember={handleBanMember}
+        onMuteMember={handleMuteMember}
       />
 
       <AccountSettingsModal
