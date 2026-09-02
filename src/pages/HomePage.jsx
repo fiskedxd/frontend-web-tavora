@@ -189,6 +189,8 @@ const HomePage = () => {
   const [onboardingStep, setOnboardingStep] = useState('email');
   const [onboardingError, setOnboardingError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [onboardingData, setOnboardingData] = useState({
     email: '',
@@ -243,6 +245,8 @@ const HomePage = () => {
     setAuthMode('onboarding');
     setOnboardingStep('email');
     setOnboardingError('');
+    setVerificationSent(false);
+    setVerificationCode('');
     setOnboardingData({ email: '', password: '', displayName: '', country: 'FR', phone: '' });
   };
 
@@ -336,6 +340,7 @@ const HomePage = () => {
           password: onboardingData.password,
           confirmPassword: onboardingData.password,
           acceptTerms: true,
+          ...(verificationSent ? { verificationCode } : {}),
         };
 
         const response = await fetch(`${API_URL}/api/auth/register`, {
@@ -347,6 +352,12 @@ const HomePage = () => {
         const data = await response.json();
         if (!response.ok) {
           throw new Error(data.message || 'Création du compte impossible.');
+        }
+
+        if (data.verificationRequired) {
+          setVerificationSent(true);
+          setOnboardingError('Un code de vérification a été envoyé à votre adresse e-mail.');
+          return;
         }
 
         login(data.user, data.token);
@@ -535,7 +546,14 @@ const HomePage = () => {
               <p className="mt-3 text-sm text-white/55">Your server is where you meet your friends. Create your own and start chatting.</p>
             </div>
             <div className="space-y-5">
-              <button type="button" onClick={handleOnboardingSubmit} disabled={authLoading} className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-[#0d1016] px-5 py-4 text-left transition hover:border-indigo-400/40 hover:bg-[#111724] disabled:cursor-not-allowed disabled:opacity-60">
+              {verificationSent ? (
+                <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-5">
+                  <label className="block text-sm text-cyan-100">Code envoyé à ton adresse e-mail</label>
+                  <input value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" className="mt-3 w-full rounded-xl border border-cyan-200/20 bg-black/20 px-4 py-3 text-center font-mono text-xl tracking-[0.5em] text-white outline-none focus:border-cyan-200" />
+                  <p className="mt-2 text-xs text-cyan-100/60">Le code expire dans 15 minutes.</p>
+                  <button type="button" onClick={handleOnboardingSubmit} disabled={authLoading || verificationCode.length !== 6} className="mt-4 w-full rounded-xl bg-cyan-200 px-4 py-3 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{authLoading ? 'Vérification…' : 'Vérifier et créer mon compte'}</button>
+                </div>
+              ) : <button type="button" onClick={handleOnboardingSubmit} disabled={authLoading} className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-[#0d1016] px-5 py-4 text-left transition hover:border-indigo-400/40 hover:bg-[#111724] disabled:cursor-not-allowed disabled:opacity-60">
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/75">
                     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -549,7 +567,7 @@ const HomePage = () => {
                   <line x1="5" y1="12" x2="19" y2="12" />
                   <polyline points="12 5 19 12 12 19" />
                 </svg>
-              </button>
+              </button>}
             </div>
           </div>
         );

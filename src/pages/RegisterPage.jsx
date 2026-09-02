@@ -18,6 +18,8 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -33,7 +35,7 @@ export default function RegisterPage() {
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, ...(verificationSent ? { verificationCode } : {}) }),
       });
 
       const data = await response.json();
@@ -41,6 +43,11 @@ export default function RegisterPage() {
         throw new Error(data.message || 'Inscription impossible.');
       }
 
+      if (data.verificationRequired) {
+        setVerificationSent(true);
+        setError('Un code de vérification a été envoyé à votre adresse e-mail.');
+        return;
+      }
       login(data.user, data.token);
       navigate('/home');
     } catch (err) {
@@ -95,6 +102,14 @@ export default function RegisterPage() {
               <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-indigo-400" required />
             </div>
 
+            {verificationSent ? (
+              <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4">
+                <label className="mb-2 block text-sm text-cyan-100">Code reçu par e-mail</label>
+                <input value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" className="w-full rounded-xl border border-cyan-200/20 bg-black/20 px-4 py-3 text-center font-mono text-xl tracking-[0.5em] text-white outline-none focus:border-cyan-200" required />
+                <p className="mt-2 text-xs text-cyan-100/60">Le code expire dans 15 minutes.</p>
+              </div>
+            ) : null}
+
             <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
               <input name="acceptTerms" type="checkbox" checked={formData.acceptTerms} onChange={handleChange} className="mt-1 h-4 w-4 rounded border-white/20 bg-transparent" required />
               <span>
@@ -105,7 +120,7 @@ export default function RegisterPage() {
             {error && <p className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{error}</p>}
 
             <button type="submit" disabled={isLoading} className="w-full rounded-2xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60">
-              {isLoading ? 'Création du compte…' : 'Créer mon compte'}
+              {isLoading ? (verificationSent ? 'Vérification…' : 'Envoi du code…') : (verificationSent ? 'Vérifier et créer mon compte' : 'Recevoir mon code')}
             </button>
           </form>
         </div>

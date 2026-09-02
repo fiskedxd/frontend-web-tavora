@@ -980,6 +980,11 @@ useEffect(() => {
     try {
       const response = await fetch(`${API_URL}/api/social/me`, { headers: getAuthHeadersRef.current() });
       const data = await readJsonResponse(response);
+      if (response.status === 401) {
+        logout();
+        navigate('/login?redirect=/home', { replace: true });
+        return;
+      }
       if (!response.ok) throw new Error(data.message || 'Impossible de charger la vue sociale.');
       if (cancelled) return;
       applySocialData(data);
