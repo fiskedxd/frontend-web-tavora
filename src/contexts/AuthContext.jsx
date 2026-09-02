@@ -4,7 +4,16 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('tavora_token') : null));
+  const [token, setToken] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const storedToken = localStorage.getItem('tavora_token');
+    if (storedToken && storedToken.split('.').length !== 3) {
+      localStorage.removeItem('tavora_token');
+      localStorage.removeItem('tavora_user');
+      return null;
+    }
+    return storedToken;
+  });
   const [isBanned, setIsBanned] = useState(false);
 
   useEffect(() => {
