@@ -774,6 +774,8 @@ function AppHomePage() {
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [liveNotifications, setLiveNotifications] = useState({ directMessages: [], servers: [] });
+  const [recentDirectMessageAt, setRecentDirectMessageAt] = useState({});
+  const recentDirectMessageHydratedRef = useRef(false);
   const [isLiveNotificationsOpen, setIsLiveNotificationsOpen] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -860,6 +862,25 @@ function AppHomePage() {
   const remoteAudioRef = useRef(new Map());
   const pendingIceCandidatesRef = useRef(new Map());
   const serverDirectoryCacheRef = useRef(new Map());
+
+  useEffect(() => {
+    const userId = user?._id || user?.id;
+    if (!userId) return;
+    recentDirectMessageHydratedRef.current = false;
+    try {
+      const storedActivity = localStorage.getItem(`tavora_recent_dm_at_${userId}`);
+      setRecentDirectMessageAt(storedActivity ? JSON.parse(storedActivity) : {});
+    } catch {
+      setRecentDirectMessageAt({});
+    }
+    recentDirectMessageHydratedRef.current = true;
+  }, [user?._id, user?.id]);
+
+  useEffect(() => {
+    const userId = user?._id || user?.id;
+    if (!userId || !recentDirectMessageHydratedRef.current) return;
+    localStorage.setItem(`tavora_recent_dm_at_${userId}`, JSON.stringify(recentDirectMessageAt));
+  }, [recentDirectMessageAt, user?._id, user?.id]);
 
   const selectedServer = useMemo(() => {
     if (!params.serverId) return null;
@@ -1017,6 +1038,19 @@ useEffect(() => {
       const data = await readJsonResponse(response);
       if (!cancelled && response.ok) {
         const nextNotifications = { directMessages: data.directMessages || [], servers: data.servers || [] };
+        setRecentDirectMessageAt((current) => {
+          const next = { ...current };
+          let changed = false;
+          nextNotifications.directMessages.forEach((notification) => {
+            const userId = String(notification.userId || '');
+            const timestamp = notification.lastMessageAt;
+            if (userId && timestamp && new Date(timestamp).getTime() > new Date(next[userId] || 0).getTime()) {
+              next[userId] = timestamp;
+              changed = true;
+            }
+          });
+          return changed ? next : current;
+        });
         setLiveNotifications((current) => (areSameValue(current, nextNotifications) ? current : nextNotifications));
       }
     } catch (error) {
@@ -1637,6 +1671,7 @@ useEffect(() => {
       if (!response.ok) throw new Error(data.message || 'Impossible d’envoyer le message privé.');
       forcePrivateScrollRef.current = true;
       setPrivateMessages((prev) => mergeMessages(prev.filter((message) => message._id !== temporaryId), [data.message]));
+      setRecentDirectMessageAt((current) => ({ ...current, [String(params.userId)]: data.message?.createdAt || new Date().toISOString() }));
     } catch (error) {
       setPrivateMessages((prev) => prev.filter((message) => message._id !== temporaryId));
       setPrivateDraft(content);
@@ -2421,7 +2456,28 @@ useEffect(() => {
     }
   };
 
-  const sortedFriends = [...friends].sort((a, b) => {
+  const unreadDirectFriends = liveNotifications.directMessages
+    .filter((notification) => Number(notification.count) > 0)
+    .map((notification) => {
+      const friend = friends.find((item) => String(item.id || item._id) === String(notification.userId));
+      return friend ? { ...friend, unreadCount: notification.count, lastMessageAt: notification.lastMessageAt } : notification.user ? { ...notification.user, unreadCount: notification.count, lastMessageAt: notification.lastMessageAt } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0));
+
+  const unreadFriendMap = new Map(unreadDirectFriends.map((friend) => [String(friend.id || friend._id), friend]));
+  const sortedFriends = [...friends].map((friend) => ({
+    ...friend,
+    unreadCount: unreadFriendMap.get(String(friend.id || friend._id))?.unreadCount || 0,
+    lastMessageAt: [
+      unreadFriendMap.get(String(friend.id || friend._id))?.lastMessageAt,
+      recentDirectMessageAt[String(friend.id || friend._id)],
+        friend.lastMessageAt,
+    ].filter(Boolean).sort((a, b) => new Date(b) - new Date(a))[0] || null,
+  })).sort((a, b) => {
+    if (a.unreadCount !== b.unreadCount) return a.unreadCount > 0 ? -1 : 1;
+    const activityDifference = new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0);
+    if (activityDifference !== 0) return activityDifference;
     const nameA = (a.displayName || a.username || '').toLowerCase();
     const nameB = (b.displayName || b.username || '').toLowerCase();
     return nameA.localeCompare(nameB);
@@ -2538,6 +2594,29 @@ useEffect(() => {
                 <span className="text-base font-semibold text-white/60">{(user?.displayName || user?.username || 'U').charAt(0).toUpperCase()}</span>
               )}
             </motion.div>
+
+            {unreadDirectFriends.length > 0 ? (
+              <div className="flex w-full flex-col items-center gap-1 px-[14px]" aria-label="Messages privés non lus">
+                {unreadDirectFriends.map((friend) => (
+                  <motion.button
+                    key={friend.id || friend._id}
+                    type="button"
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => openDirectMessage(friend.id || friend._id)}
+                    className="group relative flex h-10 w-10 items-center justify-center overflow-visible rounded-xl border border-rose-400/40 bg-[#1a1a24] text-sm font-semibold text-white/70"
+                    aria-label={`${friend.displayName || friend.username || 'Message'} : ${friend.unreadCount} message${friend.unreadCount > 1 ? 's' : ''} non lu${friend.unreadCount > 1 ? 's' : ''}`}
+                    title={`${friend.displayName || friend.username || 'Message'} (${friend.unreadCount})`}
+                  >
+                    {friend.avatarUrl ? <img src={friend.avatarUrl} alt={`Avatar de ${friend.displayName || friend.username || 'contact'}`} className="h-full w-full rounded-xl object-cover" /> : <span>{(friend.displayName || friend.username || '?').charAt(0).toUpperCase()}</span>}
+                    <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#0a0a0f] bg-rose-500 px-1 text-[10px] font-bold leading-none text-white">{friend.unreadCount > 99 ? '99+' : friend.unreadCount}</span>
+                    <span className="pointer-events-none absolute left-14 top-1/2 z-[60] -translate-y-1/2 whitespace-nowrap rounded-lg border border-rose-400/30 bg-[#171722] px-3 py-2 text-xs font-medium text-white opacity-0 shadow-xl transition-opacity duration-150 group-hover:opacity-100">
+                      {friend.displayName || friend.username || 'Message'}
+                    </span>
+                  </motion.button>
+                ))}
+              </div>
+            ) : null}
 
             <div className="w-8 h-px bg-white/5" />
             <div className="flex flex-col items-center gap-1 w-full px-[14px]">
