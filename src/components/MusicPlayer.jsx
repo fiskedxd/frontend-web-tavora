@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, CirclePlus, ListMusic, Music2, Pause, Play, Repeat, Shuffle, Trash2, Upload, Volume2, VolumeX, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CirclePlus, ListMusic, Music2, Pause, Play, Repeat, Repeat1, Shuffle, Trash2, Upload, Volume2, VolumeX, X } from 'lucide-react';
 
 import { API_URL, resolveTrackUrl } from '../utils/api';
 
@@ -19,7 +19,7 @@ export default function MusicPlayer({ isOpen, onClose, onActivityChange, getAuth
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(.8);
   const [muted, setMuted] = useState(false);
-  const [repeat, setRepeat] = useState(false);
+  const [repeat, setRepeat] = useState('off');
   const [shuffle, setShuffle] = useState(false);
   const [tab, setTab] = useState('tracks');
   const [notice, setNotice] = useState('');
@@ -133,7 +133,9 @@ export default function MusicPlayer({ isOpen, onClose, onActivityChange, getAuth
     
     // Ne recharge que si l'URL a changé
     if (url === currentTrackUrlRef.current && audioRef.current.src) {
-      // Même URL, ne pas recharger
+      if (playing && audioRef.current.paused) {
+        audioRef.current.play().catch(() => setPlaying(false));
+      }
       return;
     }
     
@@ -158,7 +160,7 @@ export default function MusicPlayer({ isOpen, onClose, onActivityChange, getAuth
         })
         .catch(() => setPlaying(false));
     }
-  }, [track?.filename]); // ← Dépend seulement de track.filename, pas de l'objet entier
+  }, [playing, track?.filename]);
 
   // Activité audio pour le WebSocket
   useEffect(() => {
@@ -180,6 +182,11 @@ export default function MusicPlayer({ isOpen, onClose, onActivityChange, getAuth
   const next = () => {
     if (!queue.length) return;
     if (shuffle) return playIndex(Math.floor(Math.random() * queue.length));
+    if (index >= queue.length - 1 && repeat === 'off') {
+      setPlaying(false);
+      setProgress(0);
+      return;
+    }
     playIndex((index + 1) % queue.length);
   };
 
@@ -201,6 +208,20 @@ export default function MusicPlayer({ isOpen, onClose, onActivityChange, getAuth
       }
     }
   };
+
+  const handleEnded = () => {
+    if (!audioRef.current || !track) return;
+    if (repeat === 'one') {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => setPlaying(false));
+      setProgress(0);
+      setPlaying(true);
+      return;
+    }
+    next();
+  };
+
+  const cycleRepeat = () => setRepeat((current) => current === 'off' ? 'all' : current === 'all' ? 'one' : 'off');
 
   const submitUpload = async (event) => {
     event.preventDefault();
@@ -305,8 +326,11 @@ export default function MusicPlayer({ isOpen, onClose, onActivityChange, getAuth
       </div>
 
       {track ? (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-300/15 via-white/[.04] to-fuchsia-300/10 p-4">
+        <div className="tavora-music-now-playing mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#050507] p-4">
           <div className="flex items-center gap-3">
+            <div className="tavora-music-icon flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black text-white">
+              {track.cover ? <img src={track.cover} alt={`Pochette de ${titleFor(track)}`} className="h-full w-full object-cover" /> : <Music2 size={22} />}
+            </div>
             <div className="min-w-0">
               <p className="truncate font-semibold text-white">{titleFor(track)}</p>
               <p className="truncate text-xs text-white/45">{track.artist || ''}</p>
@@ -401,14 +425,15 @@ export default function MusicPlayer({ isOpen, onClose, onActivityChange, getAuth
           <Shuffle size={15} />
         </button>
         <button
-          title="Lecture en boucle"
+          title={`Répétition : ${repeat === 'off' ? 'désactivée' : repeat === 'all' ? 'toutes les musiques' : 'cette musique'}`}
           type="button"
-          onClick={() => setRepeat(!repeat)}
+          onClick={cycleRepeat}
+          aria-pressed={repeat !== 'off'}
           className={`rounded-lg p-2 ${
-            repeat ? 'bg-cyan-200/20 text-cyan-100' : 'text-white/50 hover:bg-white/10'
+            repeat !== 'off' ? 'bg-white/15 text-white' : 'text-white/50 hover:bg-white/10'
           }`}
         >
-          <Repeat size={15} />
+          {repeat === 'one' ? <Repeat1 size={15} /> : <Repeat size={15} />}
         </button>
         <button
           title={muted ? 'Activer le son' : 'Couper le son'}
@@ -520,12 +545,7 @@ export default function MusicPlayer({ isOpen, onClose, onActivityChange, getAuth
   const modal = (uploadOpen || playlistOpen) ? (
     <div
       className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 p-4"
-      onMouseDown={() => {
-        if (!busy) {
-          setUploadOpen(false);
-          setPlaylistOpen(false);
-        }
-      }}
+      onMouseDown={() => { if (!busy) { setUploadOpen(false); setPlaylistOpen(false); } }}
     >
       <div
         className="mt-4 w-full max-w-md rounded-2xl border border-white/10 bg-[#111118] p-5 shadow-2xl"
@@ -617,7 +637,7 @@ export default function MusicPlayer({ isOpen, onClose, onActivityChange, getAuth
         muted={muted}
         onTimeUpdate={() => setProgress(audioRef.current?.currentTime || 0)}
         onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
-        onEnded={() => repeat ? toggle() : next()}
+        onEnded={handleEnded}
       />
 
       {isOpen ? (
@@ -626,8 +646,8 @@ export default function MusicPlayer({ isOpen, onClose, onActivityChange, getAuth
         </div>
       ) : playing ? (
         <div className="tavora-music-mini fixed top-4 opacity-55 left-1/2 z-[80] flex w-[min(94vw,520px)] -translate-x-1/2 items-center gap-2 rounded-2xl border border-white/10 bg-[#111118]/95 p-2 shadow-2xl backdrop-blur-xl">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-200/15 text-cyan-100">
-            <Music2 size={16} />
+          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-cyan-200/15 text-cyan-100">
+            {track.cover ? <img src={track.cover} alt={`Pochette de ${titleFor(track)}`} className="h-full w-full object-cover" /> : <Music2 size={16} />}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs text-white">{titleFor(track)}</p>
