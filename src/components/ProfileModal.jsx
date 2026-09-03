@@ -1056,7 +1056,7 @@ paddingLeft: '24px',
                     onClick={() => isOwnProfile && setEditingField('bio')}
                     className="w-full text-left text-sm text-gray-300 whitespace-pre-wrap rounded-lg p-3 hover:bg-white/5 transition"
                   >
-                    {profileDraft.bio || 'Aucune bio pour le moment.'}
+                    {profileDraft.bio}
                     {isOwnProfile && <Pencil size={12} className="inline ml-2 text-gray-600" />}
                   </button>
                 )}
