@@ -576,7 +576,7 @@ export default function ProfileModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="tavora-profile-surface fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/95" onClick={onClose} />
       
       {/* Inputs cachés pour les fichiers */}
@@ -767,6 +767,7 @@ width: '250px', // ← Largeur fixe
 paddingLeft: '24px',
                                   }}
                                 >
+                                  
                                   <span className="inline-flex items-center">{displayName}</span>
                                   {visibleBadges.length > 0 && (
                                     <span className="inline-flex items-center shrink-0">
@@ -791,6 +792,9 @@ paddingLeft: '24px',
                           {isOwnProfile && <Pencil size={14} className="inline ml-2 text-gray-500" />}
                         </button>
                       </div>
+                      <p className="mt-1 truncate text-sm text-gray-400" title={`@${username}`}>
+                        @{username}
+                      </p>
                     </div>
                   )}
                 </div>

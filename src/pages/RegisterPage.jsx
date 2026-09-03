@@ -79,7 +79,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-2 block text-sm text-white/60">Nom d’utilisateur</label>
-              <input name="username" value={formData.username} onChange={handleChange} placeholder="jeandupont" className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-indigo-400" required />
+              <input name="username" value={formData.username} onChange={handleChange} placeholder="jeandupont" pattern="[A-Za-z0-9]+" title="Utilise uniquement des lettres et des chiffres." className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-indigo-400" required />
             </div>
             <div>
               <label className="mb-2 block text-sm text-white/60">Nom affiché</label>

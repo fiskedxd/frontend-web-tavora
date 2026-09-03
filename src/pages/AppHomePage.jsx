@@ -274,45 +274,32 @@ const mergeMessages = (existingMessages, incomingMessages) => {
   return Array.from(merged.values()).sort((left, right) => new Date(left.createdAt || 0) - new Date(right.createdAt || 0));
 };
 
-const extractServerIdFromInvite = (invite) => {
+const extractInviteCode = (invite) => {
+  if (typeof invite === 'object' && invite?.code) return String(invite.code);
   const inviteUrl = typeof invite === 'string' ? invite : invite?.link || invite?.url || '';
-  const rawValue = typeof invite === 'object' && invite?.serverId ? String(invite.serverId) : inviteUrl;
-  if (!rawValue) return null;
-  const candidates = [rawValue, rawValue.split(':')[0], rawValue.split('|')[0]];
-  for (const candidate of candidates) {
-    if (/^[0-9a-fA-F]{24}$/.test(candidate)) {
-      return candidate;
-    }
+  if (!inviteUrl) return null;
+  try {
+    const parsedUrl = new URL(inviteUrl);
+    const inviteIndex = parsedUrl.pathname.split('/').findIndex((segment) => segment === 'invite');
+    const code = parsedUrl.pathname.split('/')[inviteIndex + 1];
+    return code ? decodeURIComponent(code) : null;
+  } catch {
+    return null;
   }
-  if (inviteUrl) {
-    try {
-      const parsedUrl = new URL(inviteUrl);
-      const segments = parsedUrl.pathname.split('/').filter(Boolean);
-      for (const segment of [...segments].reverse()) {
-        const normalizedSegment = segment.split(':')[0].split('|')[0];
-        if (/^[0-9a-fA-F]{24}$/.test(normalizedSegment)) {
-          return normalizedSegment;
-        }
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }
-  return null;
 };
 
 const serverSummaryCache = new Map();
 
-const getServerSummary = async (serverId, getAuthHeaders) => {
-  const cached = serverSummaryCache.get(serverId);
+const getInviteSummary = async (code, getAuthHeaders) => {
+  const cached = serverSummaryCache.get(code);
   if (cached && Date.now() - cached.timestamp < 30000) return cached.server;
 
-  const response = await fetch(`${API_URL}/api/social/servers/${serverId}/summary`, { headers: getAuthHeaders() });
+  const response = await fetch(`${API_URL}/api/social/invites/${encodeURIComponent(code)}/summary`, { headers: getAuthHeaders() });
   const data = await readJsonResponse(response);
   if (!response.ok || !data.server) {
     throw new Error(data.message || 'Invitation indisponible.');
   }
-  serverSummaryCache.set(serverId, { server: data.server, timestamp: Date.now() });
+  serverSummaryCache.set(code, { server: data.server, timestamp: Date.now() });
   return data.server;
 };
 
@@ -335,8 +322,8 @@ const ServerInviteCard = ({ inviteUrl, getAuthHeaders, onJoin, avatarTimestamp }
   const [bannerFailed, setBannerFailed] = useState(false);
 
   useEffect(() => {
-    const serverId = extractServerIdFromInvite(inviteUrl);
-    if (!serverId) {
+    const inviteCode = extractInviteCode(inviteUrl);
+    if (!inviteCode) {
       setStatus('invalid');
       return undefined;
     }
@@ -350,7 +337,7 @@ const ServerInviteCard = ({ inviteUrl, getAuthHeaders, onJoin, avatarTimestamp }
 
     const loadServer = async () => {
       try {
-        const nextServer = await getServerSummary(serverId, getAuthHeaders);
+        const nextServer = await getInviteSummary(inviteCode, getAuthHeaders);
         if (cancelled) return;
         setServer(nextServer);
         setStatus('ready');
@@ -794,6 +781,8 @@ function AppHomePage() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [serverContextMenu, setServerContextMenu] = useState(null);
+  const [pendingServerAction, setPendingServerAction] = useState(null);
   const [isFriendModalOpen, setIsFriendModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [mobileServerSettingsView, setMobileServerSettingsView] = useState('navigation');
@@ -820,7 +809,6 @@ function AppHomePage() {
   const [settingsTab, setSettingsTab] = useState('profile');
   const [serverSettingsMessage, setServerSettingsMessage] = useState('');
   const [serverDraft, setServerDraft] = useState({ name: '', description: '', avatarUrl: '', bannerUrl: '', accent: '' });
-  const [customInviteSuffix, setCustomInviteSuffix] = useState('');
   const [serverInviteLink, setServerInviteLink] = useState('');
   const [serverBannedMembers, setServerBannedMembers] = useState([]);
   const [isUpdatingServer, setIsUpdatingServer] = useState(false);
@@ -905,6 +893,20 @@ function AppHomePage() {
   useEffect(() => {
     if (location.pathname.startsWith('/settings')) setIsAccountSettingsOpen(true);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!serverContextMenu) return undefined;
+    const close = () => setServerContextMenu(null);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [serverContextMenu]);
+
+  useEffect(() => {
+    if (!pendingServerAction || String(selectedServer?.id) !== String(pendingServerAction.serverId)) return;
+    if (pendingServerAction.type === 'settings') setIsSettingsModalOpen(true);
+    if (pendingServerAction.type === 'invite') setIsInviteModalOpen(true);
+    setPendingServerAction(null);
+  }, [pendingServerAction, selectedServer?.id]);
 
   useEffect(() => {
     const conversationName = params.userId
@@ -1336,6 +1338,32 @@ useEffect(() => {
     }
   };
 
+  const handleDeleteServer = async (server) => {
+    if (!server?.id) return;
+    const confirmation = window.prompt(`Pour supprimer « ${server.name} », tapez son nom exactement :`);
+    if (confirmation !== server.name) return;
+    try {
+      const response = await fetch(`${API_URL}/api/social/servers/${server.id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const data = await readJsonResponse(response);
+      if (!response.ok) throw new Error(data.message || 'Impossible de supprimer le serveur.');
+      if (String(selectedServer?.id) === String(server.id)) navigate('/home');
+      await refreshSocial();
+    } catch (error) {
+      setMessage(error.message || 'Impossible de supprimer le serveur.');
+    }
+  };
+
+  const openServerAction = (server, type) => {
+    setServerContextMenu(null);
+    if (String(selectedServer?.id) === String(server.id)) {
+      if (type === 'settings') setIsSettingsModalOpen(true);
+      if (type === 'invite') setIsInviteModalOpen(true);
+      return;
+    }
+    setPendingServerAction({ serverId: server.id, type });
+    openServer(server);
+  };
+
   const handleCreateServer = async (event) => {
     event.preventDefault();
     if (!draftName.trim()) return;
@@ -1662,17 +1690,16 @@ useEffect(() => {
   };
 
   const handleJoinInvite = async (invite) => {
-    const serverId = extractServerIdFromInvite(invite);
-    if (!serverId) {
+    const code = extractInviteCode(invite);
+    if (!code) {
       setInviteMessage('Lien d’invitation invalide.');
       return null;
     }
-    const inviteUrl = typeof invite === 'string' ? invite : invite?.link || invite?.url || '';
     try {
       const response = await fetch(`${API_URL}/api/social/servers/join`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ serverId, expiresAt: invite?.expiresAt || null }),
+        body: JSON.stringify({ code }),
       });
       const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.message || 'Impossible de rejoindre le serveur.');
@@ -1722,7 +1749,6 @@ useEffect(() => {
       });
       setIsBannerEditorOpen(false);
       setServerInviteLink('');
-      setCustomInviteSuffix('');
       try {
         const [membersResponse, bansResponse] = await Promise.all([
           fetch(`${API_URL}/api/social/servers/${selectedServer.id}/members`, { headers: getAuthHeaders() }),
@@ -1891,7 +1917,7 @@ useEffect(() => {
       const response = await fetch(`${API_URL}/api/social/servers/${selectedServer.id}/invite`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ duration: inviteDuration, customCode: customInviteSuffix }),
+        body: JSON.stringify({ duration: inviteDuration }),
       });
       const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.message || 'Impossible de générer le lien d’invitation.');
@@ -2494,7 +2520,7 @@ useEffect(() => {
       openDirectMessage={openDirectMessage}
     />
       <div className="tavora-workspace flex min-h-0 flex-1 overflow-visible">
-        <aside className="tavora-server-rail flex w-[64px] flex-col items-center justify-between py-2 shrink-0">
+        <aside className="tavora-server-rail z-[50] flex w-[64px] flex-col items-center justify-between py-2 shrink-0">
           <div className="flex flex-col items-center gap-2 w-full">
             <motion.div
               whileHover={{ scale: 1.05 }}
@@ -2521,6 +2547,10 @@ useEffect(() => {
                   whileHover={{ scale: 1.08 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => openServer(server)}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    setServerContextMenu({ server, x: event.clientX, y: event.clientY });
+                  }}
                   className={`group relative flex h-10 w-10 items-center justify-center rounded-xl text-sm font-semibold transition-all duration-200 ${
                     selectedServer?.id === server.id 
                       ? 'bg-[#2a2a38] text-white border border-white/10' 
@@ -2544,6 +2574,20 @@ useEffect(() => {
                 </div>
               )}
             </div>
+            {serverContextMenu ? (
+              <div className="fixed z-[100] min-w-52 rounded-lg border border-white/10 bg-[#0b0b10] p-1 shadow-2xl" style={{ left: serverContextMenu.x, top: serverContextMenu.y }} onMouseDown={(event) => event.stopPropagation()}>
+                {serverContextMenu.server.owner ? (
+                  <>
+                    <button type="button" onClick={() => openServerAction(serverContextMenu.server, 'settings')} className="flex w-full items-center gap-3 rounded px-3 py-2 text-left text-xs text-white/70 hover:bg-white/10 hover:text-white"><Settings2 size={14} /> Paramètres du serveur</button>
+                    <button type="button" onClick={() => openServerAction(serverContextMenu.server, 'invite')} className="flex w-full items-center gap-3 rounded px-3 py-2 text-left text-xs text-white/70 hover:bg-white/10 hover:text-white"><Link size={14} /> Générer un nouveau lien</button>
+                    <div className="my-1 border-t border-white/10" />
+                    <button type="button" onClick={() => { setServerContextMenu(null); handleDeleteServer(serverContextMenu.server); }} className="flex w-full items-center gap-3 rounded px-3 py-2 text-left text-xs text-rose-300/80 hover:bg-rose-500/10"><Trash2 size={14} /> Supprimer le serveur</button>
+                  </>
+                ) : (
+                  <button type="button" onClick={() => { setServerContextMenu(null); handleLeaveServer(serverContextMenu.server.id); }} className="flex w-full items-center gap-3 rounded px-3 py-2 text-left text-xs text-rose-300/80 hover:bg-rose-500/10"><LogOut size={14} /> Quitter le serveur</button>
+                )}
+              </div>
+            ) : null}
             <motion.button
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.95 }}
@@ -3229,9 +3273,8 @@ useEffect(() => {
                     </p>
                     <form onSubmit={handleCreateInvite} className="space-y-3">
                       <select value={inviteDuration} onChange={(e) => setInviteDuration(e.target.value)} className="w-full rounded-lg bg-[#1a1a24] border border-white/5 px-3 py-2 text-sm text-white outline-none">
-                        <option value="5m">5 minutes</option>
-                        <option value="10m">10 minutes</option>
-                        <option value="30m">30 minutes</option>
+                        <option value="30s">30 secondes</option>
+                        <option value="1m">1 minute</option>
                         <option value="1h">1 heure</option>
                         <option value="8h">8 heures</option>
                         <option value="never">Indéfiniment</option>
@@ -3303,9 +3346,8 @@ useEffect(() => {
                     </p>
                     <form onSubmit={handleCreateInvite} className="space-y-3">
                       <select value={inviteDuration} onChange={(e) => setInviteDuration(e.target.value)} className="w-full rounded-lg border border-white/5 bg-[#1a1a24] px-3 py-2 text-sm text-white outline-none">
-                        <option value="5m">5 minutes</option>
-                        <option value="10m">10 minutes</option>
-                        <option value="30m">30 minutes</option>
+                        <option value="30s">30 secondes</option>
+                        <option value="1m">1 minute</option>
                         <option value="1h">1 heure</option>
                         <option value="8h">8 heures</option>
                         <option value="never">Indéfiniment</option>
@@ -3573,24 +3615,14 @@ useEffect(() => {
                         <div className="rounded-3xl border border-white/5 bg-[#13131e] p-5">
                           <div className="flex flex-col gap-4">
                             <div>
-                              <label className="text-xs text-white/40">Suffixe personnalisé</label>
-                              <input
-                                value={customInviteSuffix}
-                                onChange={(e) => setCustomInviteSuffix(e.target.value)}
-                                placeholder="code-personnalise"
-                                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d0d14] px-3 py-2 text-sm text-white outline-none"
-                              />
-                            </div>
-                            <div>
                               <label className="text-xs text-white/40">Durée</label>
                               <select
                                 value={inviteDuration}
                                 onChange={(e) => setInviteDuration(e.target.value)}
                                 className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d0d14] px-3 py-2 text-sm text-white outline-none"
                               >
-                                <option value="5m">5 minutes</option>
-                                <option value="10m">10 minutes</option>
-                                <option value="30m">30 minutes</option>
+                                <option value="30s">30 secondes</option>
+                                <option value="1m">1 minute</option>
                                 <option value="1h">1 heure</option>
                                 <option value="8h">8 heures</option>
                                 <option value="never">Indéfiniment</option>
@@ -3817,6 +3849,8 @@ useEffect(() => {
                           <input
                             value={profileDraft.username}
                             onChange={(event) => setProfileDraft((prev) => ({ ...prev, username: event.target.value }))}
+                            pattern="[A-Za-z0-9]+"
+                            title="Utilise uniquement des lettres et des chiffres."
                             className="w-full rounded-xl border border-white/5 bg-[#1a1a24] px-3 py-2 text-sm text-white outline-none"
                           />
                         </div>

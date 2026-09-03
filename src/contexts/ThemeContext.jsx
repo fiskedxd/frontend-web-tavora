@@ -1,9 +1,13 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState('dark');
+
+  useEffect(() => {
+    document.documentElement.dataset.appearance = theme;
+  }, [theme]);
 
   const value = useMemo(
     () => ({

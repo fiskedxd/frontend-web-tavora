@@ -1368,3 +1368,75 @@ body.theme-surface-pill .rounded-lg,
 body.theme-surface-pill .rounded-md {
   border-radius: 9999px !important;
 }
+
+html[data-appearance="light"] {
+  color-scheme: light;
+  --bg-primary: #f4f7fb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e9eef5;
+  --surface-base: #ffffff;
+  --surface-raised: #f8fafc;
+  --surface-elevated: #eef3f8;
+  --text-primary: #172033;
+  --text-secondary: #40506a;
+  --text-muted: #69758a;
+  --border-primary: #d8e0ea;
+  --border-secondary: rgba(126, 143, 164, 0.28);
+  --interactive-hover: #e8eef5;
+  --interactive-active: rgba(72, 111, 160, 0.14);
+  --accent-primary: rgba(44, 104, 170, 0.14);
+  --accent-hover: rgba(44, 104, 170, 0.22);
+  --shadow-primary: rgba(55, 76, 102, 0.18);
+  background: var(--bg-primary);
+}
+
+html[data-appearance="light"] body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+html[data-appearance="light"] .tavora-app-shell {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-appearance="light"] .tavora-app-shell [class*="bg-[#"]:not(.tavora-profile-surface *),
+html[data-appearance="light"] .tavora-app-shell [class*="bg-black"]:not(.tavora-profile-surface *),
+html[data-appearance="light"] .tavora-app-shell [class*="bg-white/"]:not(.tavora-profile-surface *) {
+  background: var(--surface-base) !important;
+}
+
+html[data-appearance="light"] .tavora-app-shell [class*="text-white"]:not(.tavora-profile-surface *),
+html[data-appearance="light"] .tavora-app-shell [class*="text-gray-"]:not(.tavora-profile-surface *) {
+  color: var(--text-primary) !important;
+}
+
+html[data-appearance="light"] .tavora-app-shell [class*="border-white/"]:not(.tavora-profile-surface *),
+html[data-appearance="light"] .tavora-app-shell [class*="border-[#"]:not(.tavora-profile-surface *) {
+  border-color: var(--border-primary) !important;
+}
+
+html[data-appearance="light"] .tavora-app-shell [class*="placeholder:text-white"]:not(.tavora-profile-surface *)::placeholder {
+  color: var(--text-muted) !important;
+}
+
+html[data-appearance="light"] .tavora-app-shell .tavora-navigation,
+html[data-appearance="light"] .tavora-app-shell .tavora-server-rail,
+html[data-appearance="light"] .tavora-app-shell .tavora-channel-rail,
+html[data-appearance="light"] .tavora-app-shell .tavora-members-rail {
+  background: #edf2f7 !important;
+  border-color: var(--border-primary) !important;
+}
+
+html[data-appearance="light"] .tavora-app-shell input,
+html[data-appearance="light"] .tavora-app-shell textarea,
+html[data-appearance="light"] .tavora-app-shell select {
+  color: var(--text-primary) !important;
+  background: #ffffff !important;
+  border-color: var(--border-primary) !important;
+}
+
+html[data-appearance="light"] .tavora-profile-surface,
+html[data-appearance="light"] .tavora-profile-surface * {
+  color-scheme: dark;
+}
