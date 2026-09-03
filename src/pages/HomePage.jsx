@@ -676,12 +676,6 @@ const HomePage = () => {
                         to="/login"
                         className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/[0.10] bg-white px-5 py-2 text-sm font-medium text-black transition-all duration-300 hover:scale-[1.02] hover:bg-white/90 hover:border-white/20"
                       >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                          <polyline points="10 17 15 12 10 7" />
-                          <line x1="15" y1="12" x2="3" y2="12" />
-                        </svg>
-                        Login
                       </Link>
                     )}
                     <button
