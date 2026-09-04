@@ -79,7 +79,7 @@ function CeremonyMembers({ members, elapsed }) {
 }
 
 export default function Tavora25Event() {
-  const { getAuthHeaders } = useAuth();
+  const { user, getAuthHeaders } = useAuth();
   const [event, setEvent] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [hasRestoredInterface, setHasRestoredInterface] = useState(false);
@@ -92,13 +92,22 @@ export default function Tavora25Event() {
     const socket = io(API_URL, { transports: ['websocket'] });
     const start = (nextEvent) => { if (nextEvent?.startedAt) { setEvent(nextEvent); setElapsed(Math.max(0, Date.now() - new Date(nextEvent.startedAt).getTime())); } };
     const localStart = (customEvent) => start(customEvent.detail);
-    const sync = async () => { try { const response = await fetch(`${API_URL}/api/event/state`, { headers: getAuthHeaders() }); const result = await response.json(); if (response.ok && result.event?.active) start(result.event); } catch (error) { console.warn('Unable to sync Tavora event:', error); } };
+    const sync = async () => {
+      if (!user) return;
+      try {
+        const response = await fetch(`${API_URL}/api/event/state`, { headers: getAuthHeaders() });
+        const result = await response.json();
+        if (response.ok && result.event?.active) start(result.event);
+      } catch (error) {
+        console.warn('Unable to sync Tavora event:', error);
+      }
+    };
     socket.on('tavora:event:start', start);
     socket.on('connect', sync);
     window.addEventListener('tavora:event:start', localStart);
     sync();
     return () => { window.removeEventListener('tavora:event:start', localStart); socket.disconnect(); };
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, user]);
 
   useEffect(() => {
     if (!event) return undefined;
