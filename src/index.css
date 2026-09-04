@@ -4,6 +4,196 @@
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
+@keyframes tavora25-flicker { 0%, 100% { opacity: .25; } 50% { opacity: .7; } }
+@keyframes tavora25-number { from { opacity: 0; transform: scale(1.28) translateY(18px); filter: blur(14px); } 65% { opacity: 1; transform: scale(.98) translateY(0); filter: blur(0); } to { opacity: 1; transform: scale(1); } }
+@keyframes tavora25-card-in { from { opacity: 0; transform: translate(0, 0) rotate(0) scale(.4); } to { opacity: .82; transform: translate(calc((var(--chaos-index) * 37px) - 350px), calc((var(--chaos-index) * 83px) - 700px)) rotate(calc((var(--chaos-index) * 17deg) - 160deg)) scale(1); } }
+@keyframes tavora25-card-out { to { opacity: 0; transform: translate(calc((var(--chaos-index) * 51px) - 500px), calc((var(--chaos-index) * -71px) + 500px)) rotate(35deg) scale(.2); } }
+@keyframes tavora25-member-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes tavora25-converge { to { opacity: .18; transform: translate(calc(50vw - 50% - (var(--member-total) * 3px)), calc(50vh - 50% - (var(--member-total) * 2px))) rotate(calc(var(--member-index) * 14deg - 170deg)) scale(.8); } }
+@keyframes tavora25-title { from { opacity: 0; letter-spacing: 1em; filter: blur(10px); } to { opacity: 1; letter-spacing: .18em; filter: blur(0); } }
+@keyframes tavora25-interface-out { to { opacity: 0; transform: translate(var(--entry-x), var(--entry-y)) rotate(var(--chaos-rotate)) scale(.18); filter: blur(8px); } }
+@keyframes tavora25-interface-chaos { from { opacity: 0; transform: translate(var(--entry-x), var(--entry-y)) rotate(var(--chaos-rotate)) scale(.2); } 70% { opacity: .94; } to { opacity: .9; transform: translate(var(--chaos-x), var(--chaos-y)) rotate(var(--chaos-rotate)) scale(var(--chaos-scale)); } }
+@keyframes tavora25-interface-eject { to { opacity: 0; transform: translate(calc(var(--chaos-x) * 2.5), calc(var(--chaos-y) * 2.5)) rotate(calc(var(--chaos-rotate) * 2)) scale(.12); filter: blur(10px); } }
+@keyframes tavora25-interface-rebuild { from { opacity: .9; transform: translate(var(--chaos-x), var(--chaos-y)) rotate(var(--chaos-rotate)) scale(var(--chaos-scale)); filter: blur(0); } to { opacity: var(--original-opacity); transform: var(--original-transform); filter: var(--original-filter); } }
+@keyframes tavora25-interface-release { from { opacity: .94; transform: var(--original-transform); filter: blur(0); } 35% { opacity: .72; transform: var(--original-transform) scale(1.025); filter: blur(1px); } to { opacity: 0; transform: var(--original-transform) scale(1.12); filter: blur(12px); } }
+@keyframes tavora25-release-flash { 0% { opacity: 0; transform: scaleX(.2); } 20% { opacity: .9; } 100% { opacity: 0; transform: scaleX(1); } }
+@keyframes tavora25-hard-pulse { 0%, 100% { transform: scale(1); opacity: .12; } 50% { transform: scale(1.12); opacity: .34; } }
+@keyframes tavora25-hard-hit { 0% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) skewX(-8deg); filter: blur(18px); } 18% { opacity: 1; transform: translate(-50%, -50%) scale(1) skewX(-8deg); filter: blur(0); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(.94) skewX(-8deg); } }
+@keyframes tavora25-hard-stamp { 0% { opacity: 0; transform: translateX(-30px); } 15%, 80% { opacity: .75; transform: translateX(0); } 100% { opacity: 0; transform: translateX(30px); } }
+@keyframes tavora25-cruise-glow { 0%, 100% { opacity: .16; transform: scale(.92); } 50% { opacity: .34; transform: scale(1.08); } }
+@keyframes tavora25-hard-scan { from { transform: translateX(-120%) skewX(-18deg); } to { transform: translateX(120vw) skewX(-18deg); } }
+@keyframes tavora25-hard-jolt { 0%, 100% { transform: translate(0); } 12% { transform: translate(-8px, 3px); } 24% { transform: translate(7px, -3px); } 36% { transform: translate(-4px, 2px); } 48% { transform: translate(3px, -1px); } }
+@keyframes tavora25-hard-slice { 0%, 100% { clip-path: inset(0); transform: translate(0); } 20% { clip-path: inset(8% 0 72%); transform: translate(14px, -5px); } 40% { clip-path: inset(62% 0 12%); transform: translate(-18px, 4px); } 60% { clip-path: inset(28% 0 44%); transform: translate(8px, 0); } }
+@keyframes tavora25-hard-barrage { 0% { opacity: 0; transform: translateX(-110vw) skewX(-14deg); } 12%, 75% { opacity: 1; transform: translateX(0) skewX(-14deg); } 100% { opacity: 0; transform: translateX(110vw) skewX(-14deg); } }
+@keyframes tavora25-hard-barrage-line { 0%, 100% { transform: translateX(-12vw); } 50% { transform: translateX(12vw); } }
+@keyframes tavora25-hard-impact { 0% { opacity: 0; transform: scaleX(.1); } 12% { opacity: 1; transform: scaleX(1); } 24%, 100% { opacity: 0; transform: scaleX(1.25); } }
+@keyframes tavora25-hard-ram { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 18% { transform: translate3d(-12px, 5px, 0) scale(1.012); } 36% { transform: translate3d(11px, -6px, 0) scale(.994); } 54% { transform: translate3d(-6px, 3px, 0) scale(1.006); } 72% { transform: translate3d(4px, -2px, 0) scale(1); } }
+@keyframes tavora25-hard-sweep { 0% { transform: translateX(-120vw) rotate(-8deg); } 100% { transform: translateX(120vw) rotate(-8deg); } }
+
+.tavora25-event { position: fixed; inset: 0; z-index: 10000; overflow: hidden; background: #030405; color: #f6f2e9; font-family: Georgia, 'Times New Roman', serif; isolation: isolate; }
+.tavora25-event::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(123, 142, 158, .15), transparent 58%), linear-gradient(110deg, rgba(255,255,255,.04), transparent 30%, rgba(198,166,96,.04)); pointer-events: none; }
+.tavora25-snapshot-stage { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.tavora25-snapshot { position: fixed !important; z-index: 2; transform-origin: center; will-change: transform, opacity, filter; pointer-events: none !important; }
+.tavora25-countdown, .tavora25-dissolve { background: transparent; }
+.tavora25-countdown::before, .tavora25-dissolve::before { display: none; }
+.tavora25-dissolve .tavora25-snapshot { animation: tavora25-interface-out 1.6s calc(var(--snapshot-index) * 90ms) cubic-bezier(.55,.05,.68,.19) both; }
+.tavora25-black, .tavora25-chaos, .tavora25-thankYou, .tavora25-cut, .tavora25-ceremony { background: #000 !important; }
+.tavora25-black::before, .tavora25-chaos::before, .tavora25-thankYou::before, .tavora25-cut::before, .tavora25-ceremony::before { display: none; }
+.tavora25-chaos .tavora25-snapshot { animation: tavora25-interface-chaos 1.8s calc(var(--snapshot-index) * 120ms) cubic-bezier(.16,.82,.24,1) both; }
+.tavora25-thankYou .tavora25-snapshot { animation: tavora25-interface-eject 1.4s calc(var(--snapshot-index) * 65ms) cubic-bezier(.55,.05,.68,.19) both; }
+.tavora25-cut .tavora25-snapshot, .tavora25-ceremony:not(.is-rebuilding) .tavora25-snapshot { opacity: 0; }
+.tavora25-ceremony.is-rebuilding { background: transparent !important; pointer-events: none; }
+.tavora25-ceremony.is-rebuilding .tavora25-snapshot { animation: tavora25-interface-rebuild 8s cubic-bezier(.2,.75,.25,1) both; }
+.tavora25-ceremony.is-releasing::after { content: ''; position: absolute; left: 10vw; right: 10vw; top: 50%; height: 1px; background: #f6f2e9; box-shadow: 0 0 30px 8px rgba(246,242,233,.6); animation: tavora25-release-flash 2.3s ease-out both; }
+.tavora25-ceremony.is-releasing .tavora25-snapshot { animation: tavora25-interface-release 2.3s cubic-bezier(.2,.7,.2,1) both; }
+/* ============================================================
+   TAVORA 25 - MODE "CHAOS → STROBE PUR"
+   ============================================================ */
+
+/* ---- PHASE 1 : DÉBUT (Chaos total) ---- */
+.tavora25-mood-hard {
+  background: #000000 !important;
+  animation: 
+    phase1_chaosStrobe 0.02s infinite alternate,
+    phase1_chaosZoom 0.04s infinite alternate !important;
+}
+
+@keyframes phase1_chaosStrobe {
+  0%   { background: #000000; }
+  10%  { background: #ffffff; }
+  20%  { background: #000000; }
+  30%  { background: #ffffff; }
+  40%  { background: #000000; }
+  50%  { background: #ffffff; }
+  60%  { background: #000000; }
+  70%  { background: #ffffff; }
+  80%  { background: #000000; }
+  90%  { background: #ffffff; }
+  100% { background: #000000; }
+}
+
+@keyframes phase1_chaosZoom {
+  0%   { transform: scale(1) rotate(0deg); }
+  20%  { transform: scale(1.5) rotate(10deg); }
+  40%  { transform: scale(0.5) rotate(-10deg); }
+  60%  { transform: scale(1.8) rotate(5deg); }
+  80%  { transform: scale(0.3) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* ---- PHASE 2 : TRANSITION (le chaos s'arrête) ---- */
+.tavora25-mood-hard {
+  animation: 
+    phase1_chaosStrobe 0.02s infinite alternate,
+    phase1_chaosZoom 0.04s infinite alternate;
+  /* Après 5 secondes, on passe à la phase 2 */
+  animation-delay: 0s, 0s;
+  animation-duration: 0.02s, 0.04s;
+  animation-iteration-count: infinite, infinite;
+}
+
+/* On utilise un délai pour arrêter le zoom après 5s */
+.tavora25-mood-hard .tavora25-snapshot {
+  animation: 
+    chaosZoom 0.04s infinite alternate,
+    chaosStrobe 0.02s infinite alternate;
+  animation-delay: 0s, 0s;
+  animation-duration: 0.04s, 0.02s;
+  animation-iteration-count: infinite, infinite;
+}
+
+/* ---- PHASE 3 : STROBE PUR ---- */
+/* Après 6 secondes, on passe au stroboscope pur */
+.tavora25-mood-hard {
+  animation: pureStrobe 0.01s infinite alternate !important;
+  animation-delay: 5s !important;
+}
+
+@keyframes pureStrobe {
+  0%   { background: #000000; }
+  50%  { background: #ffffff; }
+  100% { background: #000000; }
+}
+
+/* ---- STROBE PUR SUR TOUS LES ÉLÉMENTS ---- */
+.tavora25-mood-hard .tavora25-snapshot {
+  animation: pureStrobeElement 0.01s infinite alternate !important;
+  animation-delay: 5s !important;
+  filter: saturate(0) contrast(2) brightness(1.5) !important;
+}
+
+@keyframes pureStrobeElement {
+  0%   { opacity: 1; transform: scale(1); }
+  50%  { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ---- STROBE PUR SUR LE TEXTE ---- */
+.tavora25-mood-hard .tavora25-hard-hit strong {
+  animation: pureStrobeText 0.008s infinite alternate !important;
+  animation-delay: 5s !important;
+  text-shadow: 0 0 60px #ffffff, 0 0 120px #ffffff !important;
+}
+
+@keyframes pureStrobeText {
+  0%   { opacity: 1; }
+  50%  { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* ---- SUPPRESSION DES EFFETS PENDANT LE STROBE PUR ---- */
+.tavora25-mood-hard .tavora25-hard-hit::before,
+.tavora25-mood-hard .tavora25-hard-barrage::before,
+.tavora25-mood-hard .tavora25-hard-barrage::after,
+.tavora25-mood-hard .tavora25-event::before,
+.tavora25-mood-hard .tavora25-event::after {
+  animation: none !important;
+  opacity: 0 !important;
+  display: none !important;
+}
+
+/* ---- FORCER LE NOIR/BLANC ---- */
+.tavora25-mood-hard * {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  border-color: #ffffff !important;
+  text-shadow: 0 0 20px #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-text-stroke: 0 !important;
+  filter: saturate(0) contrast(2) brightness(1.5) !important;
+}
+
+/* ---- FORCER LE CONTRASTE MAX ---- */
+.tavora25-mood-hard {
+  filter: contrast(2.5) brightness(1.5) !important;
+}
+.tavora25-mood-cruise { background: #050505 !important; }
+.tavora25-mood-cruise::before { background: radial-gradient(ellipse at 50% 42%, rgba(214,174,76,.18), transparent 35%), linear-gradient(180deg, rgba(18,58,67,.18), transparent 55%); }
+.tavora25-mood-cruise .tavora25-snapshot { filter: saturate(.82) contrast(1.08); }
+.tavora25-mood-cruise .tavora25-members::before { content: ''; position: absolute; inset: 18% 28%; border: 1px solid rgba(214,174,76,.2); border-radius: 50%; box-shadow: 0 0 80px rgba(214,174,76,.12); animation: tavora25-cruise-glow 5s ease-in-out infinite; pointer-events: none; }
+.tavora25-countdown { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 16px; text-align: center; }
+.tavora25-countdown span, .tavora25-countdown small, .tavora25-ceremony-kicker { color: #b4a77c; font: 600 10px/1.2 'DM Sans', sans-serif; letter-spacing: .42em; }
+.tavora25-countdown strong { color: #f6f2e9; font: 400 clamp(11rem, 29vw, 27rem)/.78 Georgia, serif; letter-spacing: -.08em; text-shadow: 0 0 60px rgba(230, 208, 153, .3); animation: tavora25-number .8s cubic-bezier(.2,.8,.2,1) both; }
+.tavora25-countdown small { color: rgba(246,242,233,.48); letter-spacing: .28em; }
+.tavora25-chaos { position: absolute; inset: 0; }
+.tavora25-chaos-card { position: absolute; top: 50%; left: 50%; display: flex; gap: 8px; align-items: center; padding: 10px 14px; border: 1px solid rgba(220,201,158,.3); background: rgba(17,19,20,.8); color: rgba(246,242,233,.8); font: 600 13px 'DM Sans', sans-serif; animation: tavora25-card-in 1.4s calc(var(--chaos-index) * 35ms) both; }
+.tavora25-thank-you { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #f3e9c9; font: 400 clamp(4rem, 12vw, 12rem)/1 Georgia, serif; letter-spacing: .12em; text-align: center; text-shadow: 0 0 80px rgba(221,183,94,.45); animation: tavora25-title 1.4s both; }
+.tavora25-thank-you ~ .tavora25-chaos .tavora25-chaos-card { animation: tavora25-card-out 1.2s calc(var(--chaos-index) * 20ms) both; }
+.tavora25-ceremony { background: #000; }
+.tavora25-ceremony-kicker { position: absolute; top: 9vh; left: 50%; transform: translateX(-50%); color: rgba(246,242,233,.58); white-space: nowrap; }
+.tavora25-members { position: absolute; inset: 17vh 9vw 13vh; display: grid; grid-template-columns: repeat(5, 1fr); align-content: center; gap: 14px 30px; }
+.tavora25-member { min-height: 36px; display: flex; align-items: center; justify-content: center; gap: 9px; color: rgba(246,242,233,.82); font: 500 14px 'DM Sans', sans-serif; }
+.tavora25-member-name { animation: tavora25-member-in .7s calc(var(--member-index) * 40ms) both; }
+.tavora25-members.is-converging .tavora25-member { animation: tavora25-converge 3.5s calc(var(--member-index) * 35ms) forwards; }
+.tavora25-title { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #efe2ba; font: 400 clamp(2.8rem, 8vw, 8rem)/1 Georgia, serif; letter-spacing: .18em; text-align: center; animation: tavora25-title 1.4s both; }
+.tavora25-mark { position: absolute; right: 4vw; bottom: 4vh; color: rgba(246,242,233,.4); font: 600 12px 'DM Sans', sans-serif; letter-spacing: .5em; }
+.tavora25-finale { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 18px; background: rgba(2,3,3,.72); text-align: center; }
+.tavora25-finale strong { font: 400 clamp(3rem, 10vw, 9rem) Georgia, serif; letter-spacing: .2em; }
+.tavora25-finale span, .tavora25-finale em { font: 600 12px 'DM Sans', sans-serif; letter-spacing: .45em; color: #b4a77c; }
+.tavora25-finale em { margin-top: 22px; color: #f6f2e9; font-style: normal; }
+@media (max-width: 700px) { .tavora25-members { inset-inline: 5vw; grid-template-columns: repeat(2, 1fr); gap: 12px; } .tavora25-countdown strong { font-size: 11rem; } .tavora25-title { letter-spacing: .08em; } }
+@media (prefers-reduced-motion: reduce) { .tavora25-mood-hard::before, .tavora25-mood-hard::after, .tavora25-mood-hard .tavora25-snapshot, .tavora25-mood-hard .tavora25-hard-hit strong, .tavora25-hard-barrage span, .tavora25-hard-barrage::before, .tavora25-hard-barrage::after, .tavora25-mood-hard.is-hard-intro { animation-iteration-count: 1; animation-duration: 1.8s; } }
+
 /* Theme Variables */
 :root {
   --bg-primary: #080C1C;
@@ -875,6 +1065,11 @@ body {
 .profile-badge {
   filter: drop-shadow(0 0 5px rgba(155, 220, 255, 0.2));
   vertical-align: middle;
+}
+
+.profile-badge[data-badge-id="25-members"] {
+  color: #f1d68b;
+  filter: drop-shadow(0 0 7px rgba(241, 214, 139, 0.7));
 }
 
 .tavora-server-settings-modal {

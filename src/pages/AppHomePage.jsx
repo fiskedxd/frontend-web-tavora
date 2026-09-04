@@ -1654,6 +1654,24 @@ useEffect(() => {
       setProfileMessage(sendResponse.ok ? 'Annonce lancée.' : (sent.message || 'Annonce refusée.'));
       return;
     }
+    if (privateChatUser?.isOfficial && content === '/event') {
+      setPrivateDraft('');
+      try {
+        const response = await fetch(`${API_URL}/api/event/command`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ command: '/event' }) });
+        const data = await readJsonResponse(response);
+        if (!response.ok) {
+          setProfileMessage(data.message || 'Commande refusée.');
+          return;
+        }
+        if (data.event) window.dispatchEvent(new CustomEvent('tavora:event:start', { detail: data.event }));
+        setProfileMessage('Événement des 25 membres lancé.');
+      } catch (error) {
+        setProfileMessage(error.message || 'Impossible de lancer l’événement.');
+      } finally {
+        sendingPrivateRef.current = false;
+      }
+      return;
+    }
     const temporaryId = `pending-private-${Date.now()}`;
     const optimisticMessage = { _id: temporaryId, id: temporaryId, isPending: true, authorId: user?._id || user?.id, authorDisplayName: user?.displayName || user?.username || 'Utilisateur', authorUsername: user?.username || 'user', authorAvatarUrl: user?.avatarUrl || '', content, attachment, createdAt: new Date().toISOString() };
     forcePrivateScrollRef.current = true;
@@ -1700,6 +1718,7 @@ useEffect(() => {
   const officialCommands = [
     { name: '/send', description: 'Envoyer un message officiel à un utilisateur', template: '/send "" ' },
     { name: '/actus', description: 'Envoyer une annonce officielle', template: '/actus ""' },
+    { name: '/event', description: 'Lancer la cérémonie des 25 membres', template: '/event' },
   ];
   const commandSuggestions = privateChatUser?.isOfficial && privateDraft.startsWith('/')
     ? officialCommands.filter((command) => command.name.startsWith(privateDraft.split(' ')[0]))

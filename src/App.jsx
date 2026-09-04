@@ -19,6 +19,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import MusicLibraryPage from './pages/MusicLibraryPage';
 import ModerationPage from './pages/ModerationPage';
 import ModerationReviewPage from './pages/ModerationReviewPage';
+import Tavora25Event from './event/Tavora25Event';
 
 function App() {
   return (
@@ -191,6 +192,7 @@ function AppContent() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </div>
+      <Tavora25Event />
     </>
   );
 }
