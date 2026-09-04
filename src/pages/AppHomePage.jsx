@@ -3140,6 +3140,17 @@ useEffect(() => {
                   </div>
 
                   <aside className="tavora-members-rail hidden w-72 shrink-0 px-4 py-5 lg:block">
+                    <nav aria-label="Navigation rapide" className="mb-5 flex items-center justify-between border-b border-white/[0.08] pb-4">
+                      <button type="button" onClick={handleOpenHome} title="Accueil" aria-label="Accueil" className="rounded-xl p-2.5 text-white/45 transition hover:bg-white/[0.08] hover:text-white">
+                        <Home size={17} />
+                      </button>
+                      <button type="button" onClick={handleOpenFriendModal} title="Amis" aria-label="Amis" className="rounded-xl p-2.5 text-white/45 transition hover:bg-white/[0.08] hover:text-white">
+                        <UserPlus size={17} />
+                      </button>
+                      <button type="button" onClick={handleOpenSettings} title="Paramètres" aria-label="Paramètres" className="rounded-xl p-2.5 text-white/45 transition hover:bg-white/[0.08] hover:text-white">
+                        <Settings size={17} />
+                      </button>
+                    </nav>
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-[10px] uppercase tracking-[0.3em] text-white/20">Membres</p>
