@@ -54,7 +54,7 @@ export default function LoginPage() {
           </p>
           <div className="mt-8 rounded-[24px] border border-white/10 bg-white/5 p-6 text-sm text-white/70">
             <p className="font-semibold text-white">Pas encore membre ?</p>
-            <p className="mt-2">Crée un compte en moins d’une minute, avec votre email, votre numéro, et une vérification simple.</p>
+            <p className="mt-2">Crée un compte en moins d’une minute, avec votre email et une vérification simple.</p>
             <Link to="/register" className="mt-4 inline-flex rounded-full bg-indigo-600 px-5 py-2.5 font-semibold text-white transition hover:bg-indigo-500">
               Créer un compte
             </Link>

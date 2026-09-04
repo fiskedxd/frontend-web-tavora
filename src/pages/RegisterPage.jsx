@@ -11,7 +11,6 @@ export default function RegisterPage() {
     username: '',
     displayName: '',
     email: '',
-    phone: '',
     password: '',
     confirmPassword: '',
     acceptTerms: false,
@@ -64,7 +63,7 @@ export default function RegisterPage() {
           <p className="text-sm uppercase tracking-[0.35em] text-indigo-300">Inscription</p>
           <h1 className="mt-4 text-4xl font-semibold sm:text-5xl">Crée ton espace Tavora.</h1>
           <p className="mt-5 max-w-xl text-lg leading-8 text-white/60">
-            Ouvre un compte avec ton email et ton numéro pour rejoindre des salons, partager des moments et garder un accès sécurisé à tout ce que tu aimes.
+            Ouvre un compte avec ton email pour rejoindre des salons, partager des moments et garder un accès sécurisé à tout ce que tu aimes.
           </p>
           <div className="mt-8 rounded-[24px] border border-white/10 bg-white/5 p-6 text-sm text-white/70">
             <p className="font-semibold text-white">Déjà membre ?</p>
@@ -88,10 +87,6 @@ export default function RegisterPage() {
             <div>
               <label className="mb-2 block text-sm text-white/60">Email</label>
               <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="vous@exemple.com" className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-indigo-400" required />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm text-white/60">Téléphone</label>
-              <input name="phone" type="tel" value={formData.phone} onChange={handleChange} placeholder="+33 6 00 00 00 00" className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-indigo-400" required />
             </div>
             <div>
               <label className="mb-2 block text-sm text-white/60">Mot de passe</label>

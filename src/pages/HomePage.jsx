@@ -183,7 +183,7 @@ const HomePage = () => {
     window.location.href = path;
   };
 
-  const onboardingOrder = ['email', 'password', 'displayName', 'phone', 'server'];
+  const onboardingOrder = ['email', 'password', 'displayName', 'server'];
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [authMode, setAuthMode] = useState('onboarding');
   const [onboardingStep, setOnboardingStep] = useState('email');
@@ -196,8 +196,6 @@ const HomePage = () => {
     email: '',
     password: '',
     displayName: '',
-    country: 'FR',
-    phone: '',
   });
 
   useEffect(() => {
@@ -211,31 +209,25 @@ const HomePage = () => {
     email: {
       title: 'Create your Tavora account',
       subtitle: 'Enter your email to get started.',
-      stepLabel: 'Step 1 of 5',
+      stepLabel: 'Step 1 of 4',
       button: 'Continue',
     },
     password: {
       title: 'Create a password',
       subtitle: 'Choose a secure password for your Tavora account.',
-      stepLabel: 'Step 2 of 5',
+      stepLabel: 'Step 2 of 4',
       button: 'Continue',
     },
     displayName: {
       title: 'Choose your display name',
       subtitle: 'This is the name your friends will see on Tavora.',
-      stepLabel: 'Step 3 of 5',
-      button: 'Continue',
-    },
-    phone: {
-      title: 'Add your phone number',
-      subtitle: 'Add your phone number to help secure your account.',
-      stepLabel: 'Step 4 of 5',
+      stepLabel: 'Step 3 of 4',
       button: 'Continue',
     },
     server: {
       title: 'Create your first server',
       subtitle: 'Your server is where you meet your friends. Create your own and start chatting.',
-      stepLabel: 'Step 5 of 5',
+      stepLabel: 'Step 4 of 4',
       button: 'Create my own',
     },
   };
@@ -247,7 +239,7 @@ const HomePage = () => {
     setOnboardingError('');
     setVerificationSent(false);
     setVerificationCode('');
-    setOnboardingData({ email: '', password: '', displayName: '', country: 'FR', phone: '' });
+    setOnboardingData({ email: '', password: '', displayName: '' });
   };
 
   const goToLogin = () => {
@@ -312,13 +304,6 @@ const HomePage = () => {
       }
     }
 
-    if (onboardingStep === 'phone') {
-      if (!onboardingData.country.trim() || !onboardingData.phone.trim()) {
-        setOnboardingError('Please enter your country and phone number.');
-        return;
-      }
-    }
-
     setOnboardingError('');
     if (currentIndex < onboardingOrder.length - 1) {
       setOnboardingStep(onboardingOrder[currentIndex + 1]);
@@ -336,7 +321,6 @@ const HomePage = () => {
           username: usernameSeed || `user${Date.now()}`,
           displayName: onboardingData.displayName.trim(),
           email: onboardingData.email.trim().toLowerCase(),
-          phone: onboardingData.phone.trim(),
           password: onboardingData.password,
           confirmPassword: onboardingData.password,
           acceptTerms: true,
@@ -474,7 +458,7 @@ const HomePage = () => {
         return (
           <div key="displayName" className="animate-[onboarding-in_0.35s_ease-out]" style={{ animationName: 'onboarding-in', animationDuration: '0.35s', animationTimingFunction: 'ease-out' }}>
             <div className="mb-8">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-300/70">Step 3 of 5</p>
+              <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-300/70">Step 3 of 4</p>
               <h2 className="mt-3 text-4xl font-semibold tracking-tight text-white">Choose your display name</h2>
               <p className="mt-3 text-sm text-white/55">This is the name your friends will see on Tavora.</p>
             </div>
@@ -495,53 +479,11 @@ const HomePage = () => {
             </div>
           </div>
         );
-      case 'phone':
-        return (
-          <div key="phone" className="animate-[onboarding-in_0.35s_ease-out]" style={{ animationName: 'onboarding-in', animationDuration: '0.35s', animationTimingFunction: 'ease-out' }}>
-            <div className="mb-8">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-300/70">Step 4 of 5</p>
-              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-white">Add your phone number</h2>
-              <p className="mt-3 text-sm text-white/55">Add your phone number to help secure your account.</p>
-            </div>
-            <div className="space-y-5">
-              <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
-                <label className="block">
-                  <span className="mb-2 block text-[11px] uppercase tracking-[0.24em] text-white/40">Country</span>
-                  <select
-                    value={onboardingData.country}
-                    onChange={(event) => setOnboardingData((current) => ({ ...current, country: event.target.value }))}
-                    className="w-full rounded-2xl border border-white/10 bg-[#0d1016] px-4 py-3.5 text-base text-white outline-none transition focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20"
-                  >
-                    <option value="FR">France</option>
-                    <option value="US">United States</option>
-                    <option value="GB">United Kingdom</option>
-                    <option value="CA">Canada</option>
-                    <option value="DE">Germany</option>
-                    <option value="ES">Spain</option>
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-[11px] uppercase tracking-[0.24em] text-white/40">Phone number</span>
-                  <input
-                    type="tel"
-                    value={onboardingData.phone}
-                    onChange={(event) => setOnboardingData((current) => ({ ...current, phone: event.target.value }))}
-                    placeholder="612345678"
-                    className="w-full rounded-2xl border border-white/10 bg-[#0d1016] px-4 py-3.5 text-base text-white outline-none transition focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20 placeholder:text-white/30"
-                  />
-                </label>
-              </div>
-              <button type="button" onClick={handleOnboardingSubmit} className="w-full rounded-2xl bg-white px-4 py-3.5 text-sm font-semibold uppercase tracking-[0.22em] text-black transition hover:bg-white/90">
-                Continue
-              </button>
-            </div>
-          </div>
-        );
       case 'server':
         return (
           <div key="server" className="animate-[onboarding-in_0.35s_ease-out]" style={{ animationName: 'onboarding-in', animationDuration: '0.35s', animationTimingFunction: 'ease-out' }}>
             <div className="mb-8">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-300/70">Step 5 of 5</p>
+              <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-300/70">Step 4 of 4</p>
               <h2 className="mt-3 text-4xl font-semibold tracking-tight text-white">Create your first server</h2>
               <p className="mt-3 text-sm text-white/55">Your server is where you meet your friends. Create your own and start chatting.</p>
             </div>
